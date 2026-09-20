@@ -946,6 +946,7 @@
           <div class="tab" data-tab="students" data-label="Ardayda" onclick="switchAdminTab('students')"><span class="tab-icon">🎓</span> Ardayda</div>
           <div class="tab" data-tab="meetings" data-label="Notebook" onclick="switchAdminTab('meetings')"><span class="tab-icon">📓</span> Notebook</div>
           <div class="tab" data-tab="inspect" data-label="Taftiishka Maamulka" onclick="switchAdminTab('inspect')"><span class="tab-icon">🔍</span> Taftiishka Maamulka</div>
+          <div class="tab" data-tab="qoritur" data-label="Qori Tuur" onclick="switchAdminTab('qoritur')"><span class="tab-icon">🎯</span> Qori Tuur</div>
           <div class="tab active" data-tab="lowperf" data-label="Ardayda Hoosaysa" onclick="switchAdminTab('dash')"><span class="tab-icon">📋</span> Ardayda Hoosaysa</div>
           <div class="tab" data-tab="settings" data-label="Settings" onclick="switchAdminTab('settings')"><span class="tab-icon">⚙️</span> Settings</div>
         </div>
@@ -976,11 +977,20 @@
             <label>Ilaa taariikhda</label>
             <input type="date" id="dash-date-to" onchange="renderDashboard()">
           </div>
+          <div>
+            <label>Macallinka</label>
+            <select id="dash-teacher-filter" onchange="renderDashboard()">
+              <option value="">-- Dhammaan Macallimiinta --</option>
+            </select>
+          </div>
           <div style="flex:0;">
             <button class="btn-ghost btn-sm" onclick="clearDashDateFilter()">Nadiifi</button>
           </div>
           <div style="flex:0;">
             <button class="btn-primary btn-sm" onclick="exportDashboardPDF()">📄 PDF (3+ Macalin)</button>
+          </div>
+          <div style="flex:0;">
+            <button class="btn-danger btn-sm" onclick="deleteAllFilteredFlagged()">🗑️ Tirtir Dhammaan</button>
           </div>
         </div>
         <div id="dash-list" style="margin-top:14px;"></div>
@@ -1041,7 +1051,7 @@
 
     <div id="tab-students" class="admin-tab hidden">
       <div class="card">
-        <h2>Xogta Ardayda</h2>
+        <h2 id="student-form-title">Xogta Ardayda</h2>
         <label>Ku soo dhig Excel (magaca, taleefon1, taleefon2, fasalka, section-ka)</label>
         <p class="muted" style="margin:2px 0 8px;">Haddii aad rabto inaad si degdeg ah u soo geliso arday badan, soo deji warqadda hoose, buuxi, ka dibna ku soo dhig.</p>
         <button class="btn-ghost btn-sm" onclick="downloadStudentTemplate()">⬇️ Soo deji Warqadda Template-ka</button>
@@ -1074,8 +1084,9 @@
             <input type="tel" id="s-phone2">
           </div>
         </div>
-        <div style="margin-top:12px;">
-          <button class="btn-primary btn-sm" onclick="addStudentManual()">+ Ku dar Arday</button>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn-primary btn-sm" id="student-save-btn" onclick="addStudentManual()">+ Ku dar Arday</button>
+          <button class="btn-ghost btn-sm hidden" id="student-cancel-btn" onclick="cancelEditStudent()">Ka noqo</button>
         </div>
       </div>
       <div class="card">
@@ -1102,6 +1113,21 @@
             <input type="tel" id="new-t-phone">
           </div>
         </div>
+        <div class="row">
+          <div>
+            <label>Fasalka 1aad (Qori Tuur)</label>
+            <input type="text" id="new-t-fasal1" list="fasal-datalist" placeholder="Ikhtiyaari">
+          </div>
+          <div>
+            <label>Fasalka 2aad (Qori Tuur)</label>
+            <input type="text" id="new-t-fasal2" list="fasal-datalist" placeholder="Ikhtiyaari">
+          </div>
+          <div>
+            <label>Fasalka 3aad (Qori Tuur)</label>
+            <input type="text" id="new-t-fasal3" list="fasal-datalist" placeholder="Ikhtiyaari">
+          </div>
+        </div>
+        <datalist id="fasal-datalist"></datalist>
         <div style="margin-top:12px;">
           <button class="btn-primary btn-sm" onclick="addTeacher()">+ Ku dar Macalin</button>
         </div>
@@ -1158,6 +1184,27 @@
         <h3>Taariikhda Taftiishyada</h3>
         <div id="insp-history"></div>
       </div>
+    </div>
+
+    <div id="tab-qoritur" class="admin-tab hidden">
+      <div class="card">
+        <h2>🎯 Qori Tuur — Tartanka Quraanka</h2>
+        <p class="muted">Macalin kastaa wuxuu ku yeelan karaa ilaa 3 fasal (ka dar/wax ka beddel tabka "Macallimiinta"). Marka aad taabato "Cusboonaysii", fasal kasta waxaa laga soo xulaa 3 arday oo random ah, waxaana loo kaydiyaa si aanay isu beddelin marka dib loo eego ama fariin loo diro.</p>
+        <div class="row" style="align-items:flex-end;">
+          <div>
+            <label>Abaalmarinta (ikhtiyaari, tusaale: $30)</label>
+            <input type="text" id="qt-reward" placeholder="Tusaale: $30">
+          </div>
+          <div style="flex:0;">
+            <button class="btn-primary btn-sm" onclick="generateQoriTuur()">🔄 Cusboonaysii Qori Tuurka</button>
+          </div>
+          <div style="flex:0;">
+            <button class="btn-danger btn-sm" onclick="clearQoriTuur()">🗑️ Tirtir Liiska</button>
+          </div>
+        </div>
+        <p class="muted" id="qt-generated-at" style="margin-top:8px;"></p>
+      </div>
+      <div id="qt-list"></div>
     </div>
 
     <div id="tab-meetings" class="admin-tab hidden">
@@ -1289,6 +1336,7 @@ let QURAN_SUBMISSIONS = {}; // teacherId -> batchKey -> {fasal, section, teacher
 let INSPECTIONS = {}; // teacherId -> key -> {teacherName, date, subjects:[{maadada, items, notes}]}
 let TEACHER_BOOKS = {}; // teacherId -> {bookId: true}
 let BOOKS_LIBRARY = {}; // bookId -> {title, subtitle, icon, dept, kind:'builtin'|'upload', fileName, fileType, fileData}
+let QORI_TUUR = {}; // {generatedAt, reward, results: {teacherId: {teacherName, winners:[{studentId,name,fasal}]}}}
 const booksLibRef = firebase.database().ref('booksLibrary'); // global, NOT department-scoped — one shared library, filtered by each book's dept
 booksLibRef.on('value', snap=>{
   BOOKS_LIBRARY = snap.val() || {};
@@ -1447,10 +1495,10 @@ function batchKey(fasal, section, maadada){
 
 // ---------- Department selection ----------
 function selectDept(dept){
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('qoriTuur').off(); }
   CURRENT_DEPT = dept;
   db = firebase.database().ref('ardaydaHoosaysa/' + dept); // namespaced per department so Iskuulka & Quraanka never mix
-  STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; QURAN_SUBMISSIONS = {}; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
+  STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; QURAN_SUBMISSIONS = {}; QORI_TUUR = {}; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   document.getElementById('dept-label').textContent = dept === 'quraan' ? 'Qaybta Qur\u2019aanka' : 'Qaybta Iskuulka';
   if(dept === 'iskuul') migrateLegacyIskuulData();
@@ -1478,7 +1526,7 @@ function migrateLegacyIskuulData(){
   });
 }
 function backToDeptSelect(){
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('qoriTuur').off(); }
   db = null; CURRENT_DEPT = null; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   showView('view-dept');
@@ -1487,9 +1535,10 @@ function backToDeptSelect(){
 // ---------- Firebase listeners ----------
 function attachFirebaseListeners(){
   db.child('students').on('value', snap=>{ STUDENTS = snap.val() || {}; populateFasalDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderStudentList(); });
-  db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
+  db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); populateDashTeacherFilter(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('quranWeekly').on('value', snap=>{ QURAN_SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
+  db.child('qoriTuur').on('value', snap=>{ QORI_TUUR = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden') && document.getElementById('tab-qoritur') && !document.getElementById('tab-qoritur').classList.contains('hidden')) renderQoriTuur(); });
   db.child('inspections').on('value', snap=>{ INSPECTIONS = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden')){ populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); } });
   db.child('teacherBooks').on('value', snap=>{
     TEACHER_BOOKS = snap.val() || {};
@@ -1587,6 +1636,7 @@ function backToTeacherBooksList(){
 
 // ---------- Fasal / Section dropdowns ----------
 function populateFasalDropdown(){
+  populateFasalDatalist();
   const fasalSel = document.getElementById('sel-fasal');
   const fasals = [...new Set(Object.values(STUDENTS).map(s=>s.fasal).filter(Boolean))].sort();
   if(fasalSel){
@@ -1818,6 +1868,7 @@ function switchAdminTab(tab){
   if(tab==='students') renderStudentList();
   if(tab==='teachers') renderTeacherList();
   if(tab==='inspect'){ populateInspectTeacherDropdown(); populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); }
+  if(tab==='qoritur') renderQoriTuur();
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
   if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); const deptSel=document.getElementById('new-book-dept'); if(deptSel && CURRENT_DEPT) deptSel.value = CURRENT_DEPT; }
 }
@@ -1838,7 +1889,16 @@ function tallyMarks(n){
 function clearDashDateFilter(){
   document.getElementById('dash-date-from').value = '';
   document.getElementById('dash-date-to').value = '';
+  if(document.getElementById('dash-teacher-filter')) document.getElementById('dash-teacher-filter').value = '';
   renderDashboard();
+}
+function populateDashTeacherFilter(){
+  const sel = document.getElementById('dash-teacher-filter');
+  if(!sel) return;
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">-- Dhammaan Macallimiinta --</option>' +
+    Object.entries(TEACHERS).map(([id,t])=>`<option value="${id}">${escapeHtml(t.name)}</option>`).join('');
+  if(TEACHERS[prev]) sel.value = prev;
 }
 function renderDashStats(flaggedCount){
   const el = document.getElementById('dash-stats');
@@ -1872,11 +1932,13 @@ function renderDashStats(flaggedCount){
 function renderDashboard(){
   const fromVal = document.getElementById('dash-date-from') ? document.getElementById('dash-date-from').value : '';
   const toVal = document.getElementById('dash-date-to') ? document.getElementById('dash-date-to').value : '';
+  const teacherFilter = document.getElementById('dash-teacher-filter') ? document.getElementById('dash-teacher-filter').value : '';
   const fromTs = fromVal ? new Date(fromVal+'T00:00:00').getTime() : null;
   const toTs = toVal ? new Date(toVal+'T23:59:59').getTime() : null;
 
   const agg = {}; // studentId -> {name, teachers:Set, details:[]}
   Object.entries(SUBMISSIONS).forEach(([teacherId, batches])=>{
+    if(teacherFilter && teacherId !== teacherFilter) return;
     Object.values(batches || {}).forEach(b=>{
       if(fromTs && b.submittedAt < fromTs) return;
       if(toTs && b.submittedAt > toTs) return;
@@ -2001,6 +2063,34 @@ function deleteFlaggedStudent(sid, name){
   });
   if(Object.keys(updates).length===0){ toast('Wax lama helin oo la tirtiro.'); return; }
   db.update(updates).then(()=>toast('Waa laga tirtiray liiska warbixinta.'));
+}
+function deleteAllFilteredFlagged(){
+  const fromVal = document.getElementById('dash-date-from') ? document.getElementById('dash-date-from').value : '';
+  const toVal = document.getElementById('dash-date-to') ? document.getElementById('dash-date-to').value : '';
+  const teacherFilter = document.getElementById('dash-teacher-filter') ? document.getElementById('dash-teacher-filter').value : '';
+  const fromTs = fromVal ? new Date(fromVal+'T00:00:00').getTime() : null;
+  const toTs = toVal ? new Date(toVal+'T23:59:59').getTime() : null;
+
+  const updates = {};
+  let studentSet = new Set();
+  Object.entries(SUBMISSIONS).forEach(([teacherId, batches])=>{
+    if(teacherFilter && teacherId !== teacherFilter) return;
+    Object.entries(batches || {}).forEach(([key, b])=>{
+      if(fromTs && b.submittedAt < fromTs) return;
+      if(toTs && b.submittedAt > toTs) return;
+      Object.keys(b.students || {}).forEach(sid=>{
+        updates[`submissions/${teacherId}/${key}/students/${sid}`] = null;
+        studentSet.add(sid);
+      });
+    });
+  });
+  if(studentSet.size===0){ toast('Wax lama helin oo la tirtiro.'); return; }
+  const teacherName = teacherFilter && TEACHERS[teacherFilter] ? TEACHERS[teacherFilter].name : null;
+  const msg = teacherName
+    ? `Ma hubtaa inaad hal mar ka tirtirto liiska warbixinta dhammaan ardayda (${studentSet.size}) ay soo gudbisay ${teacherName}?`
+    : `Ma hubtaa inaad hal mar ka tirtirto liiska warbixinta dhammaan ardayda (${studentSet.size}) ee hadda muuqda? Xogta ardayda ee guud (roster) lama taaban doono.`;
+  if(!confirm(msg)) return;
+  db.update(updates).then(()=>toast('Dhammaan ardayda la tirtiray liiska warbixinta.'));
 }
 function buildParentMessage(studentName, details){
   const lines = details.map(d=>`• ${d.maadada}: ${d.cilad}`).join('\n');
@@ -2209,8 +2299,33 @@ function renderStudentList(){
         <td>${escapeHtml(s.fasal||'')}</td>
         <td>${escapeHtml(s.section||'')}</td>
         <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(s.phone1||'')}</td>
-        <td><button class="btn-danger btn-sm" onclick="deleteStudent('${id}')">Tirtir</button></td>
+        <td style="display:flex;gap:6px;">
+          <button class="btn-ghost btn-sm" onclick="editStudent('${id}')">✏️ Wax ka beddel</button>
+          <button class="btn-danger btn-sm" onclick="deleteStudent('${id}')">Tirtir</button>
+        </td>
       </tr>`).join('') + '</tbody></table>';
+}
+let editingStudentId = null;
+function editStudent(id){
+  const s = STUDENTS[id];
+  if(!s) return;
+  editingStudentId = id;
+  document.getElementById('s-name').value = s.name || '';
+  document.getElementById('s-fasal').value = s.fasal || '';
+  document.getElementById('s-section').value = s.section || '';
+  document.getElementById('s-phone1').value = s.phone1 || '';
+  document.getElementById('s-phone2').value = s.phone2 || '';
+  document.getElementById('student-form-title').textContent = `✏️ Wax ka beddel: ${s.name || ''}`;
+  document.getElementById('student-save-btn').textContent = '💾 Kaydi Isbeddelka';
+  document.getElementById('student-cancel-btn').classList.remove('hidden');
+  document.getElementById('student-form-title').scrollIntoView({behavior:'smooth', block:'center'});
+}
+function cancelEditStudent(){
+  editingStudentId = null;
+  ['s-name','s-fasal','s-section','s-phone1','s-phone2'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('student-form-title').textContent = 'Xogta Ardayda';
+  document.getElementById('student-save-btn').textContent = '+ Ku dar Arday';
+  document.getElementById('student-cancel-btn').classList.add('hidden');
 }
 function normalizePhone(raw){
   if(raw===undefined || raw===null || raw==='') return '';
@@ -2226,6 +2341,14 @@ function addStudentManual(){
   const phone1 = normalizePhone(document.getElementById('s-phone1').value);
   const phone2 = normalizePhone(document.getElementById('s-phone2').value);
   if(!name || !fasal || !section){ toast('Fadlan buuxi magaca, fasalka, iyo section-ka.'); return; }
+  if(editingStudentId){
+    const id = editingStudentId;
+    db.child('students/'+id).update({name, fasal, section, phone1, phone2}).then(()=>{
+      toast('Xogta ardayga waa la cusboonaysiiyay.');
+      cancelEditStudent();
+    });
+    return;
+  }
   db.child('students').push({name, fasal, section, phone1, phone2}).then(()=>{
     toast('Arday waa la daray.');
     ['s-name','s-fasal','s-section','s-phone1','s-phone2'].forEach(id=>document.getElementById(id).value='');
@@ -2287,15 +2410,18 @@ document.getElementById('excel-file') && document.getElementById('excel-file').a
 // ---------- Teacher account management ----------
 function renderTeacherList(){
   const el = document.getElementById('teacher-list');
+  populateFasalDatalist();
   if(!el) return;
   const entries = Object.entries(TEACHERS);
   if(entries.length===0){ el.innerHTML = '<p class="muted">Weli macalin lama darin.</p>'; return; }
-  el.innerHTML = entries.map(([id,t])=>`
+  el.innerHTML = entries.map(([id,t])=>{
+    const fasallada = [t.fasal1, t.fasal2, t.fasal3].filter(Boolean);
+    return `
     <div class="student-row" id="t-row-${id}" style="flex-direction:column;align-items:stretch;">
       <div style="display:flex;align-items:flex-start;gap:10px;">
         <div style="flex:1;">
           <div class="student-name">${escapeHtml(t.name)}</div>
-          <div class="student-meta">PIN: ${escapeHtml(String(t.pin))}${t.phone ? ' · 📱 '+escapeHtml(t.phone) : ''}</div>
+          <div class="student-meta">PIN: ${escapeHtml(String(t.pin))}${t.phone ? ' · 📱 '+escapeHtml(t.phone) : ''}${fasallada.length ? ' · 🎯 '+escapeHtml(fasallada.join(', ')) : ''}</div>
         </div>
         <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">✏️ Wax ka beddel</button>
         <button class="btn-danger btn-sm" onclick="deleteTeacher('${id}')">Tirtir</button>
@@ -2325,12 +2451,33 @@ function renderTeacherList(){
             <input type="tel" id="edit-t-phone-${id}" value="${escapeHtml(t.phone || '')}">
           </div>
         </div>
+        <div class="row">
+          <div>
+            <label>Fasalka 1aad (Qori Tuur)</label>
+            <input type="text" id="edit-t-fasal1-${id}" list="fasal-datalist" value="${escapeHtml(t.fasal1 || '')}">
+          </div>
+          <div>
+            <label>Fasalka 2aad (Qori Tuur)</label>
+            <input type="text" id="edit-t-fasal2-${id}" list="fasal-datalist" value="${escapeHtml(t.fasal2 || '')}">
+          </div>
+          <div>
+            <label>Fasalka 3aad (Qori Tuur)</label>
+            <input type="text" id="edit-t-fasal3-${id}" list="fasal-datalist" value="${escapeHtml(t.fasal3 || '')}">
+          </div>
+        </div>
         <div style="margin-top:10px;display:flex;gap:8px;">
           <button class="btn-primary btn-sm" onclick="saveTeacherEdit('${id}')">💾 Kaydi</button>
           <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">Ka noqo</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
+}
+function populateFasalDatalist(){
+  const dl = document.getElementById('fasal-datalist');
+  if(!dl) return;
+  const fasals = [...new Set(Object.values(STUDENTS).map(s=>s.fasal).filter(Boolean))].sort();
+  dl.innerHTML = fasals.map(f=>`<option value="${escapeHtml(f)}">`).join('');
 }
 function toggleTeacherBook(teacherId, bookId, isOn){
   db.child('teacherBooks/'+teacherId+'/'+bookId).set(!!isOn).then(()=>toast(isOn ? 'Buugga waa loo furay macalinka.' : 'Buugga waa laga xiray macalinka.'));
@@ -2343,8 +2490,11 @@ function saveTeacherEdit(id){
   const name = document.getElementById('edit-t-name-'+id).value.trim();
   const pin = document.getElementById('edit-t-pin-'+id).value.trim();
   const phone = normalizePhone(document.getElementById('edit-t-phone-'+id).value);
+  const fasal1 = document.getElementById('edit-t-fasal1-'+id).value.trim();
+  const fasal2 = document.getElementById('edit-t-fasal2-'+id).value.trim();
+  const fasal3 = document.getElementById('edit-t-fasal3-'+id).value.trim();
   if(!name || !pin){ toast('Fadlan buuxi magaca iyo PIN-ka.'); return; }
-  db.child('teachers/'+id).update({name, pin, phone}).then(()=>{
+  db.child('teachers/'+id).update({name, pin, phone, fasal1, fasal2, fasal3}).then(()=>{
     toast('Macalinka waa la cusboonaysiiyay.');
   });
 }
@@ -2352,15 +2502,101 @@ function addTeacher(){
   const name = document.getElementById('new-t-name').value.trim();
   const pin = document.getElementById('new-t-pin').value.trim();
   const phone = normalizePhone(document.getElementById('new-t-phone').value);
+  const fasal1 = document.getElementById('new-t-fasal1').value.trim();
+  const fasal2 = document.getElementById('new-t-fasal2').value.trim();
+  const fasal3 = document.getElementById('new-t-fasal3').value.trim();
   if(!name || !pin){ toast('Fadlan buuxi magaca iyo PIN-ka.'); return; }
-  db.child('teachers').push({name, pin, phone}).then(()=>{
+  db.child('teachers').push({name, pin, phone, fasal1, fasal2, fasal3}).then(()=>{
     toast('Macalin waa la daray.');
     document.getElementById('new-t-name').value=''; document.getElementById('new-t-pin').value=''; document.getElementById('new-t-phone').value='';
+    document.getElementById('new-t-fasal1').value=''; document.getElementById('new-t-fasal2').value=''; document.getElementById('new-t-fasal3').value='';
   });
 }
 function deleteTeacher(id){
   if(!confirm('Ma hubtaa inaad tirtirto macallinkan?')) return;
   db.child('teachers/'+id).remove().then(()=>toast('Waa la tirtiray.'));
+}
+
+// ---------- Qori Tuur (Tartanka Quraanka) ----------
+function shuffleArray(arr){
+  const a = arr.slice();
+  for(let i=a.length-1; i>0; i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]] = [a[j],a[i]];
+  }
+  return a;
+}
+function generateQoriTuur(){
+  const WINNERS_PER_FASAL = 3;
+  const reward = document.getElementById('qt-reward').value.trim();
+  const results = {};
+  let anyFasalAssigned = false;
+  Object.entries(TEACHERS).forEach(([teacherId, t])=>{
+    const fasallada = [t.fasal1, t.fasal2, t.fasal3].filter(Boolean);
+    if(fasallada.length === 0) return;
+    anyFasalAssigned = true;
+    const winners = [];
+    fasallada.forEach(fasal=>{
+      const fasalName = fasal.toString().trim().toLowerCase();
+      const studentsInFasal = Object.entries(STUDENTS).filter(([sid,s])=> s.fasal && s.fasal.toString().trim().toLowerCase() === fasalName);
+      if(studentsInFasal.length === 0) return;
+      const picked = shuffleArray(studentsInFasal).slice(0, WINNERS_PER_FASAL);
+      picked.forEach(([sid,s])=> winners.push({studentId: sid, name: s.name, fasal}));
+    });
+    if(winners.length > 0){
+      results[teacherId] = {teacherName: t.name, winners};
+    }
+  });
+  if(!anyFasalAssigned){
+    toast('Ma jiraan macallimiin fasallo loo qoray. Ku dar fasallada tabka "Macallimiinta".');
+    return;
+  }
+  if(Object.keys(results).length === 0){
+    toast('Ma jirin arday ku qoran fasallada la doortay.');
+    return;
+  }
+  db.child('qoriTuur').set({generatedAt: Date.now(), reward, results}).then(()=>{
+    toast('✅ Qori tuurka waa la sameeyey, waana la kaydiyey!');
+  });
+}
+function clearQoriTuur(){
+  if(!confirm('Ma hubtaa inaad tirtirto liiska qori tuurka ee kaydsan?')) return;
+  db.child('qoriTuur').remove().then(()=>toast('Waa la tirtiray.'));
+}
+function buildQoriTuurMessage(teacherName, winners, reward){
+  const lines = winners.map(w=>`✅ ${w.name} [${w.fasal}]`).join('\n');
+  return `*TARTANKA QURAANKA*\n\n`+
+    `Hambalyo Macalin *${teacherName}*,\n\n`+
+    `Ardayda qori tuurka ugu soo baxday waa:\n${lines}` +
+    (reward ? `\n\nXusuus: Abaalmarintu waa *${reward}*.` : '') +
+    `\n\nGuul!`;
+}
+function renderQoriTuur(){
+  const el = document.getElementById('qt-list');
+  const genAtEl = document.getElementById('qt-generated-at');
+  const rewardInput = document.getElementById('qt-reward');
+  if(!el) return;
+  if(rewardInput && document.activeElement !== rewardInput) rewardInput.value = QORI_TUUR.reward || '';
+  if(genAtEl) genAtEl.textContent = QORI_TUUR.generatedAt ? `Markii ugu dambeysay: ${new Date(QORI_TUUR.generatedAt).toLocaleString('so')}` : '';
+  const results = QORI_TUUR.results || {};
+  const entries = Object.entries(results);
+  if(entries.length === 0){ el.innerHTML = '<div class="card"><p class="muted">Weli qori tuur lama samayn. Taabo "🔄 Cusboonaysii Qori Tuurka" si loo bilaabo.</p></div>'; return; }
+  el.innerHTML = entries.map(([teacherId, r])=>{
+    const teacherPhone = (TEACHERS[teacherId] && TEACHERS[teacherId].phone) ? String(TEACHERS[teacherId].phone).replace(/[^0-9+]/g,'') : '';
+    const waMsg = encodeURIComponent(buildQoriTuurMessage(r.teacherName, r.winners, QORI_TUUR.reward));
+    const waBtn = teacherPhone
+      ? `<a href="https://wa.me/${teacherPhone}?text=${waMsg}" target="_blank"><button class="btn-whatsapp btn-sm">💬 U dir Macalinka</button></a>`
+      : `<span class="muted">Telefoonka macallinka lama gelin</span>`;
+    const winnersHtml = r.winners.map(w=>`<li>${escapeHtml(w.name)} <span class="pill">${escapeHtml(w.fasal)}</span></li>`).join('');
+    return `
+    <div class="flagged-item">
+      <div class="flagged-head">
+        <span class="flagged-name">${escapeHtml(r.teacherName)}</span>
+        ${waBtn}
+      </div>
+      <ul class="detail-list">${winnersHtml}</ul>
+    </div>`;
+  }).join('');
 }
 
 // ---------- Admin Inspection (Taftiishka Maamulka) ----------
