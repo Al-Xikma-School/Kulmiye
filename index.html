@@ -1142,6 +1142,17 @@
         </div>
         <p class="muted" id="excel-status"></p>
         <hr style="border:none;border-top:1px dashed #ddd7c4;margin:16px 0;">
+        <h3>🔢 Ku dar Roll Number-yada</h3>
+        <p class="muted" style="margin:2px 0 8px;">Soo dhig faylka roll number-ka (.xls/.xlsx) ee qaybtan hadda furan (Iskuul ama Quraan). Nidaamku wuxuu isku fiirinayaa arday kasta oo horeyba ugu jira qaybtan iyo magaciisa liiska, kadibna wuxuu ku daraa/cusboonaysiiyaa <b>roll number-ka, fasalka iyo section-ka</b> — xogta liiska Excel-ku waa tan la aaminsan yahay (update), ee waa ay ka dul qori doontaa tan hore. Ardayda aan horey u jirin (cusub) waxaa si buuxda loo dari doonaa — roll number, magaca, fasalka, section-ka iyo taleefanada — kaliya markaad xaqiijiso.</p>
+        <input type="file" id="roll-import-file" accept=".xlsx,.xls">
+        <div style="margin-top:8px;">
+          <button class="btn-primary btn-sm" onclick="compareRollList()">🔍 Isbarbardhig</button>
+        </div>
+        <p class="muted" id="roll-import-status"></p>
+        <div id="roll-import-preview"></div>
+        <button class="btn-ghost btn-sm" style="margin-top:10px;" onclick="loadRollImportLogs()">🕘 Eeg Diiwaanka Isbeddellada Ugu Dambeeyay</button>
+        <div id="roll-import-logs" style="margin-top:8px;"></div>
+        <hr style="border:none;border-top:1px dashed #ddd7c4;margin:16px 0;">
         <div class="row">
           <div>
             <label>Magaca</label>
@@ -1154,6 +1165,10 @@
           <div>
             <label>Section</label>
             <input type="text" id="s-section">
+          </div>
+          <div>
+            <label>Roll No <span class="muted" style="text-transform:none;font-weight:400;">(otomaatig)</span></label>
+            <input type="text" id="s-roll" readonly style="background:#f2efe4;">
           </div>
         </div>
         <div class="row">
@@ -1639,7 +1654,7 @@ function backToDeptSelect(){
 
 // ---------- Firebase listeners ----------
 function attachFirebaseListeners(){
-  db.child('students').on('value', snap=>{ STUDENTS = snap.val() || {}; populateFasalDropdown(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderStudentList(); });
+  db.child('students').on('value', snap=>{ STUDENTS = snap.val() || {}; populateFasalDropdown(); refreshAutoRoll(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderStudentList(); });
   db.child('teachers').on('value', snap=>{ TEACHERS = snap.val() || {}; populateTeacherDropdown(); populateInspectTeacherDropdown(); populateDashTeacherFilter(); if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList(); });
   db.child('submissions').on('value', snap=>{ SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('quranWeekly').on('value', snap=>{ QURAN_SUBMISSIONS = snap.val() || {}; refreshAdminIfVisible(); });
@@ -2806,9 +2821,10 @@ function renderStudentList(){
   const entries = Object.entries(STUDENTS).filter(([id,s])=> s.name && s.name.toLowerCase().includes(q));
   countEl.textContent = Object.keys(STUDENTS).length;
   if(entries.length===0){ el.innerHTML = '<p class="muted">Ardayda lama helin.</p>'; return; }
-  el.innerHTML = `<table><thead><tr><th>Magaca</th><th>Fasalka</th><th>Section</th><th>Tel 1</th><th></th></tr></thead><tbody>` +
+  el.innerHTML = `<table><thead><tr><th>Roll</th><th>Magaca</th><th>Fasalka</th><th>Section</th><th>Tel 1</th><th></th></tr></thead><tbody>` +
     entries.map(([id,s])=>`
       <tr>
+        <td style="font-family:'JetBrains Mono',monospace;">${escapeHtml(s.roll||'')}</td>
         <td>${escapeHtml(s.name||'')}</td>
         <td>${escapeHtml(s.fasal||'')}</td>
         <td>${escapeHtml(s.section||'')}</td>
@@ -2820,6 +2836,19 @@ function renderStudentList(){
       </tr>`).join('') + '</tbody></table>';
 }
 let editingStudentId = null;
+function nextRollNumber(){
+  let max = 0;
+  Object.values(STUDENTS).forEach(s=>{
+    const n = parseInt(String(s && s.roll || '').replace(/[^0-9]/g,''), 10);
+    if(!isNaN(n) && n > max) max = n;
+  });
+  return String(max + 1);
+}
+function refreshAutoRoll(){
+  const el = document.getElementById('s-roll');
+  if(!el || editingStudentId) return; // don't overwrite a roll being edited
+  el.value = nextRollNumber();
+}
 function editStudent(id){
   const s = STUDENTS[id];
   if(!s) return;
@@ -2829,6 +2858,9 @@ function editStudent(id){
   document.getElementById('s-section').value = s.section || '';
   document.getElementById('s-phone1').value = s.phone1 || '';
   document.getElementById('s-phone2').value = s.phone2 || '';
+  const rollEl = document.getElementById('s-roll');
+  rollEl.removeAttribute('readonly');
+  rollEl.value = s.roll || '';
   document.getElementById('student-form-title').textContent = `✏️ Wax ka beddel: ${s.name || ''}`;
   document.getElementById('student-save-btn').textContent = '💾 Kaydi Isbeddelka';
   document.getElementById('student-cancel-btn').classList.remove('hidden');
@@ -2837,6 +2869,9 @@ function editStudent(id){
 function cancelEditStudent(){
   editingStudentId = null;
   ['s-name','s-fasal','s-section','s-phone1','s-phone2'].forEach(id=>document.getElementById(id).value='');
+  const rollEl = document.getElementById('s-roll');
+  rollEl.setAttribute('readonly','readonly');
+  rollEl.value = nextRollNumber();
   document.getElementById('student-form-title').textContent = 'Xogta Ardayda';
   document.getElementById('student-save-btn').textContent = '+ Ku dar Arday';
   document.getElementById('student-cancel-btn').classList.add('hidden');
@@ -2854,18 +2889,20 @@ function addStudentManual(){
   const section = document.getElementById('s-section').value.trim();
   const phone1 = normalizePhone(document.getElementById('s-phone1').value);
   const phone2 = normalizePhone(document.getElementById('s-phone2').value);
+  const roll = document.getElementById('s-roll').value.trim();
   if(!name || !fasal || !section){ toast('Fadlan buuxi magaca, fasalka, iyo section-ka.'); return; }
   if(editingStudentId){
     const id = editingStudentId;
-    db.child('students/'+id).update({name, fasal, section, phone1, phone2}).then(()=>{
+    db.child('students/'+id).update({name, fasal, section, phone1, phone2, roll}).then(()=>{
       toast('Xogta ardayga waa la cusboonaysiiyay.');
       cancelEditStudent();
     });
     return;
   }
-  db.child('students').push({name, fasal, section, phone1, phone2}).then(()=>{
+  db.child('students').push({name, fasal, section, phone1, phone2, roll}).then(()=>{
     toast('Arday waa la daray.');
     ['s-name','s-fasal','s-section','s-phone1','s-phone2'].forEach(id=>document.getElementById(id).value='');
+    refreshAutoRoll();
   });
 }
 function deleteStudent(id){
@@ -2920,6 +2957,252 @@ document.getElementById('excel-file') && document.getElementById('excel-file').a
   };
   reader.readAsBinaryString(file);
 });
+
+// ---------- Roll number import (matches an uploaded roll list against existing students) ----------
+let ROLL_IMPORT_ROWS = []; // rows from the last comparison: {roll,name,studTell,pTell1,fasal,section,status,matchedId,candidates,chosenId,include}
+function normRollName(s){
+  return String(s||'').toLowerCase().trim().replace(/\s+/g,' ').replace(/[.,]/g,'');
+}
+function splitClassSection(cs){
+  const raw = String(cs||'').trim();
+  const parts = raw.split(/\s*-\s*/);
+  if(parts.length>=2){
+    return { fasal: parts.slice(0,-1).join(' - ').trim(), section: parts[parts.length-1].trim() };
+  }
+  return { fasal: raw, section: '' };
+}
+function readRollFile(file){
+  return new Promise((resolve,reject)=>{
+    const reader = new FileReader();
+    reader.onload = evt=>{
+      try{
+        const wb = XLSX.read(evt.target.result, {type:'binary'});
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        resolve(XLSX.utils.sheet_to_json(sheet, {header:1}));
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = ()=>reject(new Error('Faylka lama akhriyin karin.'));
+    reader.readAsBinaryString(file);
+  });
+}
+function compareRollList(){
+  const fileInput = document.getElementById('roll-import-file');
+  const file = fileInput.files[0];
+  const status = document.getElementById('roll-import-status');
+  const previewEl = document.getElementById('roll-import-preview');
+  if(!db){ toast('Fadlan marka hore xulo qaybta (Iskuul/Quraan).'); return; }
+  if(!file){ toast('Fadlan xulo fayl marka hore.'); return; }
+  status.textContent = 'Waa la akhrinayaa oo la isbarbar dhigayaa...';
+  previewEl.innerHTML = '';
+  readRollFile(file).then(rows=>{
+    const byName = {};
+    Object.entries(STUDENTS).forEach(([id,s])=>{
+      const key = normRollName(s.name);
+      if(!key) return;
+      (byName[key] = byName[key] || []).push({id, s});
+    });
+    const result = [];
+    rows.forEach((row, idx)=>{
+      if(idx===0) return; // skip header row
+      const [rollNo, name, studTell, pTell1, classSection] = row;
+      if(!name) return;
+      const nm = String(name).trim();
+      const key = normRollName(nm);
+      const {fasal, section} = splitClassSection(classSection);
+      const candidates = byName[key] || [];
+      let rowStatus, matchedId = null;
+      if(candidates.length === 1){
+        rowStatus = 'matched'; matchedId = candidates[0].id;
+      } else if(candidates.length > 1){
+        const narrowed = candidates.filter(c=> normRollName(c.s.fasal)===normRollName(fasal) && normRollName(c.s.section)===normRollName(section));
+        if(narrowed.length===1){ rowStatus='matched'; matchedId = narrowed[0].id; }
+        else { rowStatus='ambiguous'; }
+      } else {
+        rowStatus = 'new';
+      }
+      const matchedStudent = matchedId ? STUDENTS[matchedId] : null;
+      result.push({
+        roll: (rollNo!==undefined && rollNo!==null) ? String(rollNo).trim() : '',
+        name: nm,
+        studTell: normalizePhone(studTell),
+        pTell1: normalizePhone(pTell1),
+        fasal, section,
+        oldFasal: matchedStudent ? (matchedStudent.fasal||'') : '',
+        oldSection: matchedStudent ? (matchedStudent.section||'') : '',
+        oldRoll: matchedStudent ? (matchedStudent.roll||'') : '',
+        status: rowStatus, matchedId, chosenId: null,
+        candidates: candidates.map(c=>({id:c.id, name:c.s.name, fasal:c.s.fasal, section:c.s.section, roll:c.s.roll||''})),
+        include: true
+      });
+    });
+    ROLL_IMPORT_ROWS = result;
+    status.textContent = `${result.length} arday ayaa laga akhriyay faylka.`;
+    renderRollImportPreview();
+  }).catch(err=>{
+    status.textContent = 'Khalad ayaa dhacay: ' + err.message;
+  });
+}
+function renderRollImportPreview(){
+  const el = document.getElementById('roll-import-preview');
+  if(!el) return;
+  const matched = ROLL_IMPORT_ROWS.filter(r=>r.status==='matched');
+  const newOnes = ROLL_IMPORT_ROWS.filter(r=>r.status==='new');
+  const ambig = ROLL_IMPORT_ROWS.filter(r=>r.status==='ambiguous');
+  const changed = matched.filter(r=> normRollName(r.oldFasal)!==normRollName(r.fasal) || normRollName(r.oldSection)!==normRollName(r.section));
+  let html = `<div class="qmodal-warn" style="margin-top:12px;">✅ La is barbar dhigay: <b>${matched.length}</b>&nbsp;&nbsp;🔄 Fasal/Section oo beddelmaya: <b>${changed.length}</b>&nbsp;&nbsp;🆕 Arday Cusub: <b>${newOnes.length}</b>&nbsp;&nbsp;⚠️ U baahan xaqiijin: <b>${ambig.length}</b></div>`;
+
+  if(ambig.length){
+    html += `<h3>⚠️ U baahan xaqiijin (${ambig.length})</h3><p class="muted">Dhowr arday oo isku magac ah ayaa ka jira liiska hore — fadlan xulo midka saxda ah, ama ka bood.</p>`;
+    html += ambig.map(r=>{
+      const idx = ROLL_IMPORT_ROWS.indexOf(r);
+      const opts = r.candidates.map(c=>`<option value="${c.id}">${escapeHtml(c.name)} — ${escapeHtml(c.fasal)} ${escapeHtml(c.section)}${c.roll?' · Roll hore: '+escapeHtml(c.roll):''}</option>`).join('');
+      return `<div class="flagged-item">
+        <div class="flagged-name">${escapeHtml(r.name)} <span class="muted" style="font-size:0.8rem;">(Roll ${escapeHtml(r.roll)} · ${escapeHtml(r.fasal)} ${escapeHtml(r.section)})</span></div>
+        <label>Xulo ardayga saxda ah</label>
+        <select data-ridx="${idx}" onchange="setRollAmbigChoice(this)">
+          <option value="">— Ka bood (skip) —</option>
+          ${opts}
+        </select>
+      </div>`;
+    }).join('');
+  }
+
+  if(newOnes.length){
+    html += `<h3>🆕 Arday Cusub oo la dari doono (${newOnes.length})</h3><p class="muted">Ardaydan lama helin liiskii hore ee sistemka — xogtooda buuxda ayaa lagu dari doonaa markaad xaqiijiso. Ka saar calaamadda haddii aadan rabin in mid la daro.</p>`;
+    html += `<table><thead><tr><th></th><th>Roll</th><th>Magaca</th><th>Fasalka</th><th>Section</th><th>Tel1</th><th>Tel2</th></tr></thead><tbody>` +
+      newOnes.map(r=>{
+        const idx = ROLL_IMPORT_ROWS.indexOf(r);
+        return `<tr>
+          <td><input type="checkbox" checked data-ridx="${idx}" onchange="toggleRollInclude(this)"></td>
+          <td>${escapeHtml(r.roll)}</td>
+          <td>${escapeHtml(r.name)}</td>
+          <td>${escapeHtml(r.fasal)}</td>
+          <td>${escapeHtml(r.section)}</td>
+          <td>${escapeHtml(r.pTell1)}</td>
+          <td>${escapeHtml(r.studTell)}</td>
+        </tr>`;
+      }).join('') + '</tbody></table>';
+  }
+
+  if(changed.length){
+    html += `<h3>🔄 Fasal/Section oo beddelmaya (${changed.length})</h3><p class="muted">Ardaydan fasalkooda/section-kooda sistemka ku qornaa ayaa ka duwan kan Excel-ka — Excel-ka ayaa loo aaminsan yahay, ee waxaa lagu beddeli doonaa tan hoose markaad xaqiijiso.</p>`;
+    html += `<table><thead><tr><th>Roll</th><th>Magaca</th><th>Fasalka (hore → cusub)</th><th>Section (hore → cusub)</th></tr></thead><tbody>` +
+      changed.map(r=>{
+        const fasalChanged = normRollName(r.oldFasal)!==normRollName(r.fasal);
+        const sectionChanged = normRollName(r.oldSection)!==normRollName(r.section);
+        const fasalCell = fasalChanged ? `${escapeHtml(r.oldFasal||'—')} → <b style="color:var(--chalk-red);">${escapeHtml(r.fasal)}</b>` : escapeHtml(r.fasal);
+        const sectionCell = sectionChanged ? `${escapeHtml(r.oldSection||'—')} → <b style="color:var(--chalk-red);">${escapeHtml(r.section)}</b>` : escapeHtml(r.section);
+        return `<tr style="background:#fff7e0;"><td>${escapeHtml(r.roll)}</td><td>${escapeHtml(r.name)}</td><td>${fasalCell}</td><td>${sectionCell}</td></tr>`;
+      }).join('') + '</tbody></table>';
+  }
+
+  if(matched.length){
+    html += `<details style="margin-top:12px;"><summary style="cursor:pointer;font-family:'Kalam',cursive;font-size:1rem;color:var(--ink);">✅ Arday la is barbar dhigay (${matched.length}) — riix si aad u aragto</summary>` +
+      `<table><thead><tr><th>Roll</th><th>Magaca</th><th>Fasalka</th><th>Section</th></tr></thead><tbody>` +
+      matched.map(r=>`<tr><td>${escapeHtml(r.roll)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.fasal)}</td><td>${escapeHtml(r.section)}</td></tr>`).join('') +
+      '</tbody></table></details>';
+  }
+
+  if(matched.length || newOnes.length || ambig.length){
+    html += `<button class="btn-primary" style="margin-top:16px;" onclick="commitRollImport()">💾 Xaqiiji oo Keydi Dhammaan</button>`;
+  }
+  el.innerHTML = html;
+}
+function toggleRollInclude(chk){
+  const idx = Number(chk.dataset.ridx);
+  if(ROLL_IMPORT_ROWS[idx]) ROLL_IMPORT_ROWS[idx].include = chk.checked;
+}
+function setRollAmbigChoice(sel){
+  const idx = Number(sel.dataset.ridx);
+  if(ROLL_IMPORT_ROWS[idx]) ROLL_IMPORT_ROWS[idx].chosenId = sel.value || null;
+}
+function commitRollImport(){
+  if(!db){ toast('Fadlan marka hore xulo qaybta.'); return; }
+  const updates = {};
+  const changeLog = [];
+  const newStudentsLog = [];
+  let matchedCount=0, newCount=0, skipped=0;
+  ROLL_IMPORT_ROWS.forEach(r=>{
+    if(r.status==='matched' && r.matchedId){
+      updates['students/'+r.matchedId+'/roll'] = r.roll;
+      updates['students/'+r.matchedId+'/fasal'] = r.fasal;
+      updates['students/'+r.matchedId+'/section'] = r.section;
+      matchedCount++;
+      if(normRollName(r.oldFasal)!==normRollName(r.fasal) || normRollName(r.oldSection)!==normRollName(r.section) || normRollName(r.oldRoll)!==normRollName(r.roll)){
+        changeLog.push({name:r.name, oldRoll:r.oldRoll, newRoll:r.roll, oldFasal:r.oldFasal, newFasal:r.fasal, oldSection:r.oldSection, newSection:r.section});
+      }
+    } else if(r.status==='ambiguous'){
+      if(r.chosenId){
+        const cand = r.candidates.find(c=>c.id===r.chosenId) || {};
+        updates['students/'+r.chosenId+'/roll'] = r.roll;
+        updates['students/'+r.chosenId+'/fasal'] = r.fasal;
+        updates['students/'+r.chosenId+'/section'] = r.section;
+        matchedCount++;
+        changeLog.push({name:r.name, oldRoll:cand.roll||'', newRoll:r.roll, oldFasal:cand.fasal||'', newFasal:r.fasal, oldSection:cand.section||'', newSection:r.section});
+      } else {
+        skipped++;
+      }
+    } else if(r.status==='new'){
+      if(r.include){
+        const key = db.child('students').push().key;
+        updates['students/'+key] = {
+          name: r.name,
+          fasal: r.fasal,
+          section: r.section,
+          phone1: r.pTell1,
+          phone2: r.studTell,
+          roll: r.roll
+        };
+        newCount++;
+        newStudentsLog.push({name:r.name, roll:r.roll, fasal:r.fasal, section:r.section});
+      } else {
+        skipped++;
+      }
+    }
+  });
+  if(matchedCount===0 && newCount===0){ toast('Wax lagu keydin karo lama helin.'); return; }
+  db.update(updates).then(()=>{
+    // Diiwaan-geli isbeddelka si maamulka kale aysan ugu khaldamin
+    db.child('rollImportLogs').push({
+      at: new Date().toISOString(),
+      matchedCount, newCount, skipped,
+      changedCount: changeLog.length,
+      changes: changeLog,
+      newStudents: newStudentsLog
+    });
+    const changedNote = changeLog.length ? `, ${changeLog.length} fasal/section ayaa la beddelay` : '';
+    toast(`✅ ${matchedCount} roll number ayaa la cusboonaysiiyay${changedNote}, ${newCount} arday oo cusub ayaa la daray.`);
+    document.getElementById('roll-import-preview').innerHTML = '';
+    document.getElementById('roll-import-status').textContent = '';
+    document.getElementById('roll-import-file').value = '';
+    ROLL_IMPORT_ROWS = [];
+  }).catch(err=>{
+    toast('Khalad: ' + err.message);
+  });
+}
+
+function loadRollImportLogs(){
+  if(!db){ toast('Fadlan marka hore xulo qaybta.'); return; }
+  const el = document.getElementById('roll-import-logs');
+  el.innerHTML = '<p class="muted">Waa la soo gelinayaa...</p>';
+  db.child('rollImportLogs').limitToLast(10).once('value').then(snap=>{
+    const val = snap.val() || {};
+    const entries = Object.values(val).sort((a,b)=> String(b.at||'').localeCompare(String(a.at||'')));
+    if(!entries.length){ el.innerHTML = '<p class="muted">Weli isbeddel lama diiwaan gelin.</p>'; return; }
+    el.innerHTML = entries.map(e=>{
+      const dateStr = e.at ? new Date(e.at).toLocaleString('so') : '';
+      let inner = `<div class="flagged-item"><div class="flagged-name" style="font-size:0.95rem;">🕘 ${dateStr}</div>
+        <p class="muted" style="margin:4px 0;">✅ ${e.matchedCount||0} la cusboonaysiiyay · 🔄 ${e.changedCount||0} fasal/section oo beddelay · 🆕 ${e.newCount||0} arday oo cusub</p>`;
+      if(e.changes && e.changes.length){
+        inner += `<details><summary style="cursor:pointer;">Faahfaahinta isbeddellada (${e.changes.length})</summary><ul class="detail-list">` +
+          e.changes.map(c=>`<li><b>${escapeHtml(c.name)}</b>: Roll ${escapeHtml(c.oldRoll||'—')} → ${escapeHtml(c.newRoll||'—')} · Fasal ${escapeHtml(c.oldFasal||'—')} → ${escapeHtml(c.newFasal||'—')} · Section ${escapeHtml(c.oldSection||'—')} → ${escapeHtml(c.newSection||'—')}</li>`).join('') +
+          '</ul></details>';
+      }
+      inner += '</div>';
+      return inner;
+    }).join('');
+  });
+}
 
 // ---------- Teacher account management ----------
 function renderTeacherList(){
