@@ -2960,6 +2960,7 @@ document.getElementById('excel-file') && document.getElementById('excel-file').a
 
 // ---------- Roll number import (matches an uploaded roll list against existing students) ----------
 let ROLL_IMPORT_ROWS = []; // rows from the last comparison: {roll,name,studTell,pTell1,fasal,section,status,matchedId,candidates,chosenId,include}
+let ROLL_DEPARTED_ROWS = []; // students that exist in the system but were not found anywhere in the uploaded excel list
 function normRollName(s){
   return String(s||'').toLowerCase().trim().replace(/\s+/g,' ').replace(/[.,]/g,'');
 }
@@ -3036,6 +3037,10 @@ function compareRollList(){
       });
     });
     ROLL_IMPORT_ROWS = result;
+    const excelNameKeys = new Set(result.map(r=>normRollName(r.name)));
+    ROLL_DEPARTED_ROWS = Object.entries(STUDENTS)
+      .filter(([id,s])=> s && s.name && !excelNameKeys.has(normRollName(s.name)))
+      .map(([id,s])=>({id, name:s.name, fasal:s.fasal||'', section:s.section||'', roll:s.roll||'', action:'keep'}));
     status.textContent = `${result.length} arday ayaa laga akhriyay faylka.`;
     renderRollImportPreview();
   }).catch(err=>{
@@ -3049,7 +3054,19 @@ function renderRollImportPreview(){
   const newOnes = ROLL_IMPORT_ROWS.filter(r=>r.status==='new');
   const ambig = ROLL_IMPORT_ROWS.filter(r=>r.status==='ambiguous');
   const changed = matched.filter(r=> normRollName(r.oldFasal)!==normRollName(r.fasal) || normRollName(r.oldSection)!==normRollName(r.section));
-  let html = `<div class="qmodal-warn" style="margin-top:12px;">✅ La is barbar dhigay: <b>${matched.length}</b>&nbsp;&nbsp;🔄 Fasal/Section oo beddelmaya: <b>${changed.length}</b>&nbsp;&nbsp;🆕 Arday Cusub: <b>${newOnes.length}</b>&nbsp;&nbsp;⚠️ U baahan xaqiijin: <b>${ambig.length}</b></div>`;
+  let html = `<div class="qmodal-warn" style="margin-top:12px;">✅ La is barbar dhigay: <b>${matched.length}</b>&nbsp;&nbsp;🔄 Fasal/Section oo beddelmaya: <b>${changed.length}</b>&nbsp;&nbsp;🆕 Arday Cusub: <b>${newOnes.length}</b>&nbsp;&nbsp;⚠️ U baahan xaqiijin: <b>${ambig.length}</b>&nbsp;&nbsp;🚪 Kuma jiraan Excel-ka: <b>${ROLL_DEPARTED_ROWS.length}</b></div>`;
+
+  if(ROLL_DEPARTED_ROWS.length){
+    html += `<h3>🚪 Kuma jiraan Liiska Excel-ka (laga yaabo inay ka baxeen) (${ROLL_DEPARTED_ROWS.length})</h3><p class="muted">Ardaydan koodhka (sistemka) ayey ku jiraan laakiin liiska Excel-ka aad hadda soo dhigtay kuma jiraan. Xul mid kasta: <b>U daa</b> (wax lama tabayo) ama <b>Tirtir</b>. Wax lagama qaadi doono ilaa aad xaqiijiso.</p>`;
+    html += ROLL_DEPARTED_ROWS.map((r,i)=>`
+      <div class="flagged-item">
+        <div class="flagged-name">${escapeHtml(r.name)} <span class="muted" style="font-size:0.8rem;">(Roll ${escapeHtml(r.roll||'—')} · ${escapeHtml(r.fasal)} ${escapeHtml(r.section)})</span></div>
+        <select data-didx="${i}" onchange="setDepartedAction(this)">
+          <option value="keep" selected>U daa (skip)</option>
+          <option value="delete">🗑️ Tirtir</option>
+        </select>
+      </div>`).join('');
+  }
 
   if(ambig.length){
     html += `<h3>⚠️ U baahan xaqiijin (${ambig.length})</h3><p class="muted">Dhowr arday oo isku magac ah ayaa ka jira liiska hore — fadlan xulo midka saxda ah, ama ka bood.</p>`;
@@ -3096,17 +3113,14 @@ function renderRollImportPreview(){
       }).join('') + '</tbody></table>';
   }
 
-  if(matched.length){
-    html += `<details style="margin-top:12px;"><summary style="cursor:pointer;font-family:'Kalam',cursive;font-size:1rem;color:var(--ink);">✅ Arday la is barbar dhigay (${matched.length}) — riix si aad u aragto</summary>` +
-      `<table><thead><tr><th>Roll</th><th>Magaca</th><th>Fasalka</th><th>Section</th></tr></thead><tbody>` +
-      matched.map(r=>`<tr><td>${escapeHtml(r.roll)}</td><td>${escapeHtml(r.name)}</td><td>${escapeHtml(r.fasal)}</td><td>${escapeHtml(r.section)}</td></tr>`).join('') +
-      '</tbody></table></details>';
-  }
-
-  if(matched.length || newOnes.length || ambig.length){
+  if(matched.length || newOnes.length || ambig.length || ROLL_DEPARTED_ROWS.length){
     html += `<button class="btn-primary" style="margin-top:16px;" onclick="commitRollImport()">💾 Xaqiiji oo Keydi Dhammaan</button>`;
   }
   el.innerHTML = html;
+}
+function setDepartedAction(sel){
+  const idx = Number(sel.dataset.didx);
+  if(ROLL_DEPARTED_ROWS[idx]) ROLL_DEPARTED_ROWS[idx].action = sel.value;
 }
 function toggleRollInclude(chk){
   const idx = Number(chk.dataset.ridx);
@@ -3160,22 +3174,34 @@ function commitRollImport(){
       }
     }
   });
-  if(matchedCount===0 && newCount===0){ toast('Wax lagu keydin karo lama helin.'); return; }
+  const deletedLog = [];
+  let deletedCount = 0;
+  ROLL_DEPARTED_ROWS.forEach(r=>{
+    if(r.action==='delete'){
+      updates['students/'+r.id] = null;
+      deletedCount++;
+      deletedLog.push({name:r.name, roll:r.roll, fasal:r.fasal, section:r.section});
+    }
+  });
+  if(matchedCount===0 && newCount===0 && deletedCount===0){ toast('Wax lagu keydin karo lama helin.'); return; }
   db.update(updates).then(()=>{
     // Diiwaan-geli isbeddelka si maamulka kale aysan ugu khaldamin
     db.child('rollImportLogs').push({
       at: new Date().toISOString(),
-      matchedCount, newCount, skipped,
+      matchedCount, newCount, skipped, deletedCount,
       changedCount: changeLog.length,
       changes: changeLog,
-      newStudents: newStudentsLog
+      newStudents: newStudentsLog,
+      deletedStudents: deletedLog
     });
     const changedNote = changeLog.length ? `, ${changeLog.length} fasal/section ayaa la beddelay` : '';
-    toast(`✅ ${matchedCount} roll number ayaa la cusboonaysiiyay${changedNote}, ${newCount} arday oo cusub ayaa la daray.`);
+    const deletedNote = deletedCount ? `, ${deletedCount} arday ayaa laga tirtiray liiska` : '';
+    toast(`✅ ${matchedCount} roll number ayaa la cusboonaysiiyay${changedNote}, ${newCount} arday oo cusub ayaa la daray${deletedNote}.`);
     document.getElementById('roll-import-preview').innerHTML = '';
     document.getElementById('roll-import-status').textContent = '';
     document.getElementById('roll-import-file').value = '';
     ROLL_IMPORT_ROWS = [];
+    ROLL_DEPARTED_ROWS = [];
   }).catch(err=>{
     toast('Khalad: ' + err.message);
   });
@@ -3192,10 +3218,15 @@ function loadRollImportLogs(){
     el.innerHTML = entries.map(e=>{
       const dateStr = e.at ? new Date(e.at).toLocaleString('so') : '';
       let inner = `<div class="flagged-item"><div class="flagged-name" style="font-size:0.95rem;">🕘 ${dateStr}</div>
-        <p class="muted" style="margin:4px 0;">✅ ${e.matchedCount||0} la cusboonaysiiyay · 🔄 ${e.changedCount||0} fasal/section oo beddelay · 🆕 ${e.newCount||0} arday oo cusub</p>`;
+        <p class="muted" style="margin:4px 0;">✅ ${e.matchedCount||0} la cusboonaysiiyay · 🔄 ${e.changedCount||0} fasal/section oo beddelay · 🆕 ${e.newCount||0} arday oo cusub · 🗑️ ${e.deletedCount||0} la tirtiray</p>`;
       if(e.changes && e.changes.length){
         inner += `<details><summary style="cursor:pointer;">Faahfaahinta isbeddellada (${e.changes.length})</summary><ul class="detail-list">` +
           e.changes.map(c=>`<li><b>${escapeHtml(c.name)}</b>: Roll ${escapeHtml(c.oldRoll||'—')} → ${escapeHtml(c.newRoll||'—')} · Fasal ${escapeHtml(c.oldFasal||'—')} → ${escapeHtml(c.newFasal||'—')} · Section ${escapeHtml(c.oldSection||'—')} → ${escapeHtml(c.newSection||'—')}</li>`).join('') +
+          '</ul></details>';
+      }
+      if(e.deletedStudents && e.deletedStudents.length){
+        inner += `<details><summary style="cursor:pointer;">Ardaydii la tirtiray (${e.deletedStudents.length})</summary><ul class="detail-list">` +
+          e.deletedStudents.map(d=>`<li><b>${escapeHtml(d.name)}</b> — ${escapeHtml(d.fasal)} ${escapeHtml(d.section)} (Roll ${escapeHtml(d.roll||'—')})</li>`).join('') +
           '</ul></details>';
       }
       inner += '</div>';
