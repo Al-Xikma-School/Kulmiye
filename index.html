@@ -852,6 +852,9 @@
   <div id="view-dept" class="role-select">
     <button class="role-btn" onclick="selectDept('iskuul')">🏫 Qaybta Iskuulka<span>Warbixinta ardayda hoosaysa — maadooyinka iskuulka</span></button>
     <button class="role-btn" onclick="selectDept('quraan')">📖 Qaybta Quraanka<span>Warbixinta ardayda hoosaysa — Qur'aanka</span></button>
+    <div style="width:100%;text-align:center;margin-top:4px;">
+      <span class="back-link" onclick="goSuperAdminLogin()">🗝️ Maamulka Guud — Feature-yada Qaybaha</span>
+    </div>
   </div>
 
   <!-- Role selection -->
@@ -860,6 +863,46 @@
     <button class="role-btn" onclick="goAdminLogin()">🗝️ Maamul<span>Warbixinno &amp; xogta ardayda</span></button>
     <div style="width:100%;text-align:center;margin-top:6px;">
       <span class="back-link" onclick="backToDeptSelect()">← Beddel Qaybta</span>
+    </div>
+  </div>
+
+  <!-- General/Super Admin login (manages features across BOTH departments) -->
+  <div id="view-superadmin-login" class="hidden">
+    <span class="back-link" onclick="showView('view-dept')">← Dib u noqo</span>
+    <div class="card">
+      <h2>🗝️ Gelitaanka Maamulka Guud</h2>
+      <p class="muted">Halkan waxaad ka maamuli kartaa features-ka Qaybta Iskuulka iyo Qaybta Qur'aanka labadaba — furid, xirid, iyo u beddelid magaca feature kasta.</p>
+      <label>PIN-ka Maamulka Guud</label>
+      <input type="password" id="sa-pin" placeholder="••••">
+      <div class="center" style="margin-top:18px;">
+        <button class="btn-primary" onclick="superAdminLogin()">Gal</button>
+      </div>
+      <p class="muted center" id="sa-login-err"></p>
+    </div>
+  </div>
+
+  <!-- General/Super Admin panel -->
+  <div id="view-superadmin" class="hidden">
+    <span class="back-link" onclick="showView('view-dept')">← Ka bax Maamulka Guud</span>
+    <div class="card">
+      <h2>🗝️ Maamulka Guud — Feature-yada</h2>
+      <p class="muted">Halkan waxaad gaar ahaan uga xirtaa/furtaa feature kasta Qaybta Iskuulka iyo Qaybta Qur'aanka, waxaadna u beddeli kartaa magaca feature-ka marka aad u furayso qaybtaas. Tusaale: "Farta Laatiinka" ee Iskuulka waxaad Qur'aanka ugu bixin kartaa "Tartanka Quraanka", isla feature-ka ee Iskuulka waad u daynin kartaa "Farta Laatiinka".</p>
+    </div>
+    <div class="card">
+      <h3>🏫 Qaybta Iskuulka</h3>
+      <div id="sa-features-iskuul"></div>
+    </div>
+    <div class="card">
+      <h3>📖 Qaybta Qur'aanka</h3>
+      <div id="sa-features-quraan"></div>
+    </div>
+    <div class="card">
+      <h3>🔑 Beddel PIN-ka Maamulka Guud</h3>
+      <label>PIN Cusub</label>
+      <input type="password" id="new-superadmin-pin" placeholder="PIN cusub">
+      <div class="center" style="margin-top:12px;">
+        <button class="btn-primary btn-sm" onclick="changeSuperAdminPin()">Beddel PIN-ka</button>
+      </div>
     </div>
   </div>
 
@@ -935,17 +978,29 @@
 
     <div id="t-tab-farta" class="hidden">
       <div class="card">
-        <h2>✍️ Tartanka Farta Laatiinka — Diiwaangelinta Dhibcaha</h2>
+        <h2 id="t-farta-h2">✍️ Tartanka Farta Laatiinka — Diiwaangelinta Dhibcaha</h2>
         <p class="muted">Shaxdan waxaa ku soo baxa ardayda lagu qori-tuuray ee fasal kasta. Geli dhibcaha qodob kasta ee arday walba, wadartu si toos ah ayay isugu dari doontaa.</p>
         <div id="t-farta-table-wrap" style="overflow-x:auto;"></div>
         <div class="center" style="margin-top:14px;">
           <button class="btn-primary" onclick="saveAllFartaScores('t-farta')">💾 Kaydi Dhammaan Dhibcaha</button>
+          <button class="btn-whatsapp hidden" id="t-farta-wa-class" onclick="sendFartaClassRankingToGroup()">📤 Koox: Kaalinta Fasallada</button>
+          <button class="btn-whatsapp hidden" id="t-farta-wa-teacher" onclick="sendFartaTeacherRankingToGroup()">📤 Koox: Kaalinta Macalimiinta</button>
+          <button class="btn-ghost" onclick="printFartaTable('t-farta')">🖨️ Print</button>
+          <button class="btn-ghost" onclick="exportFartaPdf('t-farta')">📄 PDF</button>
         </div>
       </div>
       <div class="card">
         <h3>🏆 Kala Sarreynta Fasallada</h3>
         <p class="muted">Wadarta dhibcaha ee fasal kasta, kala sorotay.</p>
         <div id="t-farta-ranking"></div>
+      </div>
+      <div class="card">
+        <h3>🥇 Kala Sarreynta Ardayda</h3>
+        <p class="muted">Ardayda oo dhan, siday dhibcahoodu isugu dhaafaan ilaa ugu hooseeya.</p>
+        <div class="center" style="margin-bottom:10px;">
+          <button class="btn-ghost" onclick="printFartaResults()">🖨️ Print Natiijada (Ku dheji)</button>
+        </div>
+        <div id="t-farta-student-ranking" style="overflow-x:auto;"></div>
       </div>
     </div>
   </div>
@@ -1020,14 +1075,14 @@
           <button class="sidebar-close" onclick="closeAdminMenu()" aria-label="Xir liiska">✕</button>
         </div>
         <div class="tabs" id="admin-main-tabs">
-          <div class="tab" data-tab="teachers" data-label="Macallimiinta" onclick="switchAdminTab('teachers')"><span class="tab-icon">👩‍🏫</span> Macallimiinta</div>
-          <div class="tab" data-tab="students" data-label="Ardayda" onclick="switchAdminTab('students')"><span class="tab-icon">🎓</span> Ardayda</div>
-          <div class="tab" data-tab="meetings" data-label="Notebook" onclick="switchAdminTab('meetings')"><span class="tab-icon">📓</span> Notebook</div>
-          <div class="tab" data-tab="inspect" data-label="Taftiishka Maamulka" onclick="switchAdminTab('inspect')"><span class="tab-icon">🔍</span> Taftiishka Maamulka</div>
-          <div class="tab" data-tab="qoritur" data-label="Qori Tuur" onclick="switchAdminTab('qoritur')"><span class="tab-icon">🎯</span> Qori Tuur</div>
-          <div class="tab" data-tab="farta" data-label="Tartanka Farta Laatiinka" onclick="switchAdminTab('farta')"><span class="tab-icon">✍️</span> Farta Laatiinka</div>
-          <div class="tab active" data-tab="lowperf" data-label="Ardayda Hoosaysa" onclick="switchAdminTab('dash')"><span class="tab-icon">📋</span> Ardayda Hoosaysa</div>
-          <div class="tab" data-tab="settings" data-label="Settings" onclick="switchAdminTab('settings')"><span class="tab-icon">⚙️</span> Settings</div>
+          <div class="tab" id="admintab-teachers" data-tab="teachers" data-label="Macallimiinta" onclick="switchAdminTab('teachers')"><span class="tab-icon">👩‍🏫</span> <span class="tab-label-text">Macallimiinta</span></div>
+          <div class="tab" id="admintab-students" data-tab="students" data-label="Ardayda" onclick="switchAdminTab('students')"><span class="tab-icon">🎓</span> <span class="tab-label-text">Ardayda</span></div>
+          <div class="tab" id="admintab-meetings" data-tab="meetings" data-label="Notebook" onclick="switchAdminTab('meetings')"><span class="tab-icon">📓</span> <span class="tab-label-text">Notebook</span></div>
+          <div class="tab" id="admintab-inspect" data-tab="inspect" data-label="Taftiishka Maamulka" onclick="switchAdminTab('inspect')"><span class="tab-icon">🔍</span> <span class="tab-label-text">Taftiishka Maamulka</span></div>
+          <div class="tab" id="admintab-qoritur" data-tab="qoritur" data-label="Qori Tuur" onclick="switchAdminTab('qoritur')"><span class="tab-icon">🎯</span> <span class="tab-label-text">Qori Tuur</span></div>
+          <div class="tab" id="admintab-farta" data-tab="farta" data-label="Tartanka Farta Laatiinka" onclick="switchAdminTab('farta')"><span class="tab-icon">✍️</span> <span class="tab-label-text">Farta Laatiinka</span></div>
+          <div class="tab active" id="admintab-lowperf" data-tab="lowperf" data-label="Ardayda Hoosaysa" onclick="switchAdminTab('dash')"><span class="tab-icon">📋</span> <span class="tab-label-text">Ardayda Hoosaysa</span></div>
+          <div class="tab" id="admintab-settings" data-tab="settings" data-label="Settings" onclick="switchAdminTab('settings')"><span class="tab-icon">⚙️</span> Settings</div>
         </div>
         <div class="sidebar-logout">
           <span class="back-link" onclick="logout()">← Ka bax</span>
@@ -1333,13 +1388,15 @@
 
     <div id="tab-farta" class="admin-tab hidden">
       <div class="card">
-        <h2>✍️ Tartanka Farta Laatiinka — Diiwaangelinta Dhibcaha</h2>
+        <h2 id="admin-farta-h2">✍️ Tartanka Farta Laatiinka — Diiwaangelinta Dhibcaha</h2>
         <p class="muted">Shaxdan waxaa ku soo baxa ardayda lagu qori-tuuray ee fasal kasta (tabka "Qori Tuur"). Rowga sarena wuxuu ku qoran yahay magacyada wixii lagu tartami lahaa — geli dhibcaha qodob kasta ee arday walba, wadartu si toos ah ayay isugu dari doontaa.</p>
         <div id="farta-table-wrap" style="overflow-x:auto;"></div>
         <div class="center" style="margin-top:14px;">
           <button class="btn-primary" onclick="saveAllFartaScores()">💾 Kaydi Dhammaan Dhibcaha</button>
           <button class="btn-whatsapp" onclick="sendFartaClassRankingToGroup()">📤 Koox: Kaalinta Fasallada</button>
           <button class="btn-whatsapp" onclick="sendFartaTeacherRankingToGroup()">📤 Koox: Kaalinta Macalimiinta</button>
+          <button class="btn-ghost" onclick="printFartaTable('farta')">🖨️ Print</button>
+          <button class="btn-ghost" onclick="exportFartaPdf('farta')">📄 PDF</button>
         </div>
       </div>
       <div class="card">
@@ -1351,6 +1408,14 @@
         <h3>🏆 Kala Sarreynta Fasallada</h3>
         <p class="muted">Wadarta dhibcaha ee fasal kasta, kala sorotay.</p>
         <div id="farta-ranking"></div>
+      </div>
+      <div class="card">
+        <h3>🥇 Kala Sarreynta Ardayda</h3>
+        <p class="muted">Ardayda oo dhan, siday dhibcahoodu isugu dhaafaan ilaa ugu hooseeya.</p>
+        <div class="center" style="margin-bottom:10px;">
+          <button class="btn-ghost" onclick="printFartaResults()">🖨️ Print Natiijada (Ku dheji)</button>
+        </div>
+        <div id="farta-student-ranking" style="overflow-x:auto;"></div>
       </div>
     </div>
 
@@ -1404,12 +1469,6 @@
     </div>
 
     <div id="tab-settings" class="admin-tab hidden">
-      <div class="card">
-        <h3>🧩 Featureska Macalimiinta</h3>
-        <p class="muted">Halkan waxaad ka furi/xiri kartaa featureska macalimiintu ka arki karaan akoonkooda. Marka feature la furo, wuxuu ka soo muuqan doonaa liiska macallinka.</p>
-        <div id="teacher-features-settings"></div>
-      </div>
-
       <div class="card">
         <h3>🔑 Beddel PIN-ka Maamulka</h3>
         <div class="row">
@@ -1497,6 +1556,109 @@ firebase.initializeApp(firebaseConfig);
 let db = null;          // department-scoped Firebase ref, set by selectDept()
 let CURRENT_DEPT = null; // 'iskuul' or 'quraan'
 
+// ---------- Maamulka Guud (General/Super Admin): per-department feature open/close + rename ----------
+// NOT department-scoped — one shared config so the same panel can manage BOTH Iskuulka and Qur'aanka.
+const FEATURE_DEFS = [
+  {id:'teachers', icon:'👩‍🏫', defaultLabel:'Macallimiinta'},
+  {id:'students', icon:'🎓', defaultLabel:'Ardayda'},
+  {id:'meetings', icon:'📓', defaultLabel:'Notebook'},
+  {id:'inspect',  icon:'🔍', defaultLabel:'Taftiishka Maamulka'},
+  {id:'qoritur',  icon:'🎯', defaultLabel:'Qori Tuur'},
+  {id:'farta',    icon:'✍️', defaultLabel:'Farta Laatiinka'},
+  {id:'dash',     icon:'📋', defaultLabel:'Ardayda Hoosaysa'}
+];
+const ADMIN_TAB_IDS = {teachers:'admintab-teachers', students:'admintab-students', meetings:'admintab-meetings', inspect:'admintab-inspect', qoritur:'admintab-qoritur', farta:'admintab-farta', dash:'admintab-lowperf'};
+// Nested under 'ardaydaHoosaysa' (not a new top-level path) so it works under the existing Firebase rules.
+const featureConfigRef = firebase.database().ref('ardaydaHoosaysa/featureConfig');
+let FEATURE_CONFIG = {iskuul:{}, quraan:{}};
+featureConfigRef.child('superAdminPin').once('value', snap=>{ if(!snap.exists()) featureConfigRef.child('superAdminPin').set('9090'); }).catch(err=>console.error('featureConfig seed error:', err));
+featureConfigRef.on('value', snap=>{
+  const val = snap.val() || {};
+  FEATURE_CONFIG = {iskuul: val.iskuul || {}, quraan: val.quraan || {}};
+  applyFeatureConfigToAdminUI();
+  if(!document.getElementById('view-superadmin').classList.contains('hidden')) renderSuperAdminPanel();
+}, err=>console.error('featureConfig listener error:', err));
+// Returns {enabled, label} for a feature in a given department, falling back to sensible defaults.
+function featureCfg(dept, id){
+  const c = (dept && FEATURE_CONFIG[dept] && FEATURE_CONFIG[dept][id]) || {};
+  const def = FEATURE_DEFS.find(f=>f.id===id);
+  return { enabled: c.enabled !== false, label: (c.label && c.label.trim()) ? c.label.trim() : (def ? def.defaultLabel : id) };
+}
+// Hides/shows and relabels the admin sidebar tabs for CURRENT_DEPT, and jumps off a tab that just got closed.
+function applyFeatureConfigToAdminUI(){
+  if(!CURRENT_DEPT) return;
+  FEATURE_DEFS.forEach(f=>{
+    const cfg = featureCfg(CURRENT_DEPT, f.id);
+    const tabEl = document.getElementById(ADMIN_TAB_IDS[f.id]);
+    if(tabEl){
+      tabEl.classList.toggle('hidden', !cfg.enabled);
+      tabEl.dataset.label = cfg.label;
+      const span = tabEl.querySelector('.tab-label-text');
+      if(span) span.textContent = cfg.label;
+    }
+    if(f.id==='farta'){
+      const h2 = document.getElementById('admin-farta-h2');
+      if(h2) h2.textContent = '✍️ ' + cfg.label + ' — Diiwaangelinta Dhibcaha';
+    }
+  });
+  applyFartaVisibility();
+  if(document.getElementById('view-admin').classList.contains('hidden')) return; // only auto-switch while the admin panel is actually open
+  const mainTabs = document.getElementById('admin-main-tabs');
+  if(!mainTabs) return;
+  const activeTab = mainTabs.querySelector('.tab.active');
+  if(activeTab && activeTab.classList.contains('hidden')){
+    const firstVisible = mainTabs.querySelector('.tab:not(.hidden)');
+    if(firstVisible) firstVisible.click();
+  }
+}
+// ---------- Maamulka Guud: login + panel ----------
+function goSuperAdminLogin(){ document.getElementById('sa-login-err').textContent=''; document.getElementById('sa-pin').value=''; showView('view-superadmin-login'); }
+function superAdminLogin(){
+  const pin = document.getElementById('sa-pin').value.trim();
+  featureConfigRef.child('superAdminPin').once('value', snap=>{
+    const real = snap.exists() ? snap.val() : '9090';
+    if(String(real) === pin){
+      showView('view-superadmin');
+      renderSuperAdminPanel();
+    } else {
+      document.getElementById('sa-login-err').textContent = 'PIN khalad ah.';
+    }
+  }).catch(err=>{
+    document.getElementById('sa-login-err').textContent = 'Khalad Firebase ah: ' + (err && err.message ? err.message : err);
+  });
+}
+function changeSuperAdminPin(){
+  const val = document.getElementById('new-superadmin-pin').value.trim();
+  if(!val){ toast('Geli PIN cusub.'); return; }
+  featureConfigRef.child('superAdminPin').set(val).then(()=>{ toast('PIN-ka Maamulka Guud waa la beddelay.'); document.getElementById('new-superadmin-pin').value=''; });
+}
+function renderSuperAdminPanel(){
+  const deptTitles = {iskuul:'Qaybta Iskuulka', quraan:'Qaybta Qur\u2019aanka'};
+  ['iskuul','quraan'].forEach(dept=>{
+    const el = document.getElementById('sa-features-'+dept);
+    if(!el) return;
+    el.innerHTML = FEATURE_DEFS.map(f=>{
+      const cfg = featureCfg(dept, f.id);
+      return `
+      <div class="insp-item-row">
+        <label style="display:flex;align-items:center;gap:8px;margin:0;text-transform:none;font-weight:600;color:var(--ink);flex:0 0 auto;min-width:170px;cursor:pointer;">
+          <input type="checkbox" style="width:18px;height:18px;" ${cfg.enabled ? 'checked' : ''} onchange="setFeatureEnabled('${dept}','${f.id}', this.checked)">
+          ${f.icon} ${f.defaultLabel}
+        </label>
+        <input type="text" value="${escapeHtml(cfg.label)}" placeholder="Magaca feature-ka ee ${escapeHtml(deptTitles[dept])}" onchange="setFeatureLabel('${dept}','${f.id}', this.value)">
+      </div>`;
+    }).join('');
+  });
+}
+function setFeatureEnabled(dept, id, val){
+  featureConfigRef.child(dept+'/'+id+'/enabled').set(!!val).then(()=>toast(val ? '✅ Feature-ka waa la furay.' : '🔒 Feature-ka waa la xiray.'));
+}
+function setFeatureLabel(dept, id, val){
+  const label = val.trim();
+  const def = FEATURE_DEFS.find(f=>f.id===id);
+  featureConfigRef.child(dept+'/'+id+'/label').set(label || (def ? def.defaultLabel : id)).then(()=>toast('✏️ Magaca waa la beddelay.'));
+}
+
 let STUDENTS = {};   // id -> {name, phone1, phone2, fasal, section}
 let TEACHERS = {};   // id -> {name, pin}
 let SUBMISSIONS = {}; // teacherId -> batchKey -> {...}
@@ -1509,6 +1671,8 @@ let QURAN_PICKED = new Set(); // students the teacher has ticked in the current 
 let QURAN_OPEN = new Set(); // student ids whose day-list is expanded on the admin screen
 let INSPECTIONS = {}; // teacherId -> key -> {teacherName, date, subjects:[{maadada, items, notes}]}
 let TEACHER_BOOKS = {}; // teacherId -> {bookId: true}
+let TEACHER_FARTA_WA = {}; // teacherId -> true/false, kaydsan config/teacherFartaWa — macalin kasta gaar ahaan loo furo/xiro WhatsApp-ka Farta Laatiinka
+let TEACHER_FARTA = {}; // teacherId -> true/false, kaydsan teacherFarta — macalin kasta gaar ahaan loo furo/xiro inuu gabi ahaanba arko bogga Tartanka Farta Laatiinka
 let BOOKS_LIBRARY = {}; // bookId -> {title, subtitle, icon, dept, kind:'builtin'|'upload', fileName, fileType, fileData}
 let QORI_TUUR = {}; // {generatedAt, reward, results: {teacherId: {teacherName, winners:[{studentId,name,fasal}]}}}
 let FARTA_LAATIINKA = {}; // studentId -> {fasal, section, scores:{catId:num}, total, updatedAt}
@@ -1525,11 +1689,7 @@ const FARTA_CATEGORIES = [ // Qodobada Tartanka Farta Laatiinka + dhibcaha ugu b
   {id:'xarfahaWayn',     label:'Xarfaha waa wayn inay labada sadar gaaraan',                          max:10}
 ];
 const FARTA_MAX_TOTAL = FARTA_CATEGORIES.reduce((s,c)=>s+c.max,0); // 100 arday kasta
-// ---------- Featureska Macalimiinta (settings: fur/xir features macalimiintu arki karaan) ----------
-let TEACHER_FEATURES = {}; // featureId -> true/false, kaydsan config/teacherFeatures
-const TEACHER_FEATURE_LIST = [ // ku dar halkan feature kasta oo maamulku rabo inuu u furo/xiro macalimiinta
-  {id:'farta', label:'✍️ Tartanka Farta Laatiinka', optionEl:'opt-t-farta'}
-];
+// ---------- Bogga Tartanka Farta Laatiinka: macalin kasta gaar ahaan loo furo/xiro (kaydsan teacherFarta) ----------
 function isFartaTabVisible(prefix='farta'){
   if(prefix==='farta'){
     const adminView = document.getElementById('view-admin');
@@ -1699,14 +1859,15 @@ function batchKey(fasal, section, maadada){
 // ---------- Department selection ----------
 function selectDept(dept){
   stopInspectionListeners();
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('config/teacherFeatures').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('teacherFartaWa').off(); db.child('teacherFarta').off(); }
   CURRENT_DEPT = dept;
   db = firebase.database().ref('ardaydaHoosaysa/' + dept); // namespaced per department so Iskuulka & Quraanka never mix
-  STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; QURAN_SUBMISSIONS = {}; QURAN_DAILY = {}; QURAN_PICKED = new Set(); QURAN_SKIPN = {}; QURAN_SUBCI_RANGE = {fs:0, fa:0, ts:0, ta:0}; QURAN_MODE = 'known'; QURAN_OPEN = new Set(); QORI_TUUR = {}; FARTA_LAATIINKA = {}; TEACHER_FEATURES = {}; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
+  STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; QURAN_SUBMISSIONS = {}; QURAN_DAILY = {}; QURAN_PICKED = new Set(); QURAN_SKIPN = {}; QURAN_SUBCI_RANGE = {fs:0, fa:0, ts:0, ta:0}; QURAN_MODE = 'known'; QURAN_OPEN = new Set(); QORI_TUUR = {}; FARTA_LAATIINKA = {}; TEACHER_FARTA_WA = {}; TEACHER_FARTA = {}; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   document.getElementById('dept-label').textContent = dept === 'quraan' ? 'Qaybta Qur\u2019aanka' : 'Qaybta Iskuulka';
   if(dept === 'iskuul') migrateLegacyIskuulData();
   attachFirebaseListeners();
+  applyFeatureConfigToAdminUI();
   showView('view-role');
 }
 // One-time migration: data created before the department split lived directly under
@@ -1731,7 +1892,7 @@ function migrateLegacyIskuulData(){
 }
 function backToDeptSelect(){
   stopInspectionListeners();
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('config/teacherFeatures').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('teacherFartaWa').off(); db.child('teacherFarta').off(); }
   db = null; CURRENT_DEPT = null; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   showView('view-dept');
@@ -1746,15 +1907,20 @@ function attachFirebaseListeners(){
   db.child('quranDaily').on('value', snap=>{ QURAN_DAILY = snap.val() || {}; refreshAdminIfVisible(); });
   db.child('qoriTuur').on('value', snap=>{ QORI_TUUR = snap.val() || {}; if(!document.getElementById('view-admin').classList.contains('hidden') && document.getElementById('tab-qoritur') && !document.getElementById('tab-qoritur').classList.contains('hidden')) renderQoriTuur(); if(isFartaTabVisible()) renderFartaTable(); if(isFartaTabVisible('t-farta')) renderFartaTable('t-farta'); });
   db.child('fartaLaatiinka').on('value', snap=>{ FARTA_LAATIINKA = snap.val() || {}; if(isFartaTabVisible()) renderFartaTable(); if(isFartaTabVisible('t-farta')) renderFartaTable('t-farta'); });
-  db.child('config/teacherFeatures').on('value', snap=>{
-    TEACHER_FEATURES = snap.val() || {};
-    if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherFeatureSettings();
-    applyTeacherFeatureVisibility();
-  });
   db.child('teacherBooks').on('value', snap=>{
     TEACHER_BOOKS = snap.val() || {};
     if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList();
     if(currentTeacher && !document.getElementById('view-teacher-select').classList.contains('hidden') && !document.getElementById('t-tab-books').classList.contains('hidden')) renderTeacherBooksList();
+  });
+  db.child('teacherFartaWa').on('value', snap=>{
+    TEACHER_FARTA_WA = snap.val() || {};
+    if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList();
+    applyFartaWaVisibility();
+  });
+  db.child('teacherFarta').on('value', snap=>{
+    TEACHER_FARTA = snap.val() || {};
+    if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList();
+    applyFartaVisibility();
   });
   db.child('config/adminPin').once('value', snap=>{ if(!snap.exists()) db.child('config/adminPin').set('1234'); });
   db.child('inspectionItems').once('value', snap=>{
@@ -1805,6 +1971,7 @@ function teacherLogin(){
   populateFasalDropdown();
   document.getElementById('sel-report-type').value = (CURRENT_DEPT === 'quraan') ? 'quran' : 'hoosayn';
   onReportTypeChange();
+  applyFartaVisibility();
   showView('view-teacher-select');
   switchTeacherTab('reports');
 }
@@ -1815,38 +1982,32 @@ function switchTeacherTab(tab){
   document.getElementById('t-tab-inspect').classList.toggle('hidden', tab!=='inspect');
   document.getElementById('t-tab-farta').classList.toggle('hidden', tab!=='farta');
   if(tab==='inspect') renderTeacherInspections();
-  if(tab==='farta') renderFartaTable('t-farta');
+  if(tab==='farta') { renderFartaTable('t-farta'); applyFartaWaVisibility(); }
   if(tab==='books'){
     document.getElementById('teacher-books-list').classList.remove('hidden');
     document.getElementById('teacher-book-detail').classList.add('hidden');
     renderTeacherBooksList();
   }
 }
-// Isku-day inuu ka bax haddii feature-ka la xiro intuu macallinku ku jiro (u celi 'reports')
-function applyTeacherFeatureVisibility(){
-  TEACHER_FEATURE_LIST.forEach(f=>{
-    const opt = document.getElementById(f.optionEl);
-    if(!opt) return;
-    const on = !!TEACHER_FEATURES[f.id];
-    opt.hidden = !on;
-    if(!on && currentTeacher){
-      const navSel = document.getElementById('teacher-main-select');
-      if(navSel && navSel.value === f.id) switchTeacherTab('reports');
-    }
-  });
+// Isku-day inuu ka bax haddii macalinka laga xiro Farta Laatiinka intuu ku jiro (u celi 'reports')
+function applyFartaVisibility(){
+  const opt = document.getElementById('opt-t-farta');
+  const cfg = featureCfg(CURRENT_DEPT, 'farta');
+  if(opt) opt.textContent = '✍️ ' + cfg.label;
+  const h2 = document.getElementById('t-farta-h2');
+  if(h2) h2.textContent = '✍️ ' + cfg.label + ' — Diiwaangelinta Dhibcaha';
+  const on = cfg.enabled && !!(currentTeacher && TEACHER_FARTA[currentTeacher.id]);
+  if(opt) opt.hidden = !on;
+  if(!on && currentTeacher){
+    const navSel = document.getElementById('teacher-main-select');
+    if(navSel && navSel.value === 'farta') switchTeacherTab('reports');
+  }
 }
-// ---------- Settings: Featureska Macalimiinta ----------
-function renderTeacherFeatureSettings(){
-  const el = document.getElementById('teacher-features-settings');
-  if(!el) return;
-  el.innerHTML = TEACHER_FEATURE_LIST.map(f=>`
-    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;">
-      <input type="checkbox" ${TEACHER_FEATURES[f.id] ? 'checked' : ''} onchange="toggleTeacherFeature('${f.id}', this.checked)">
-      ${f.label}
-    </label>`).join('');
-}
-function toggleTeacherFeature(featureId, on){
-  if(db) db.child('config/teacherFeatures/'+featureId).set(!!on);
+// Badhamada WhatsApp ee bogga Farta Laatiinka macalinku arko waxa xukuma TEACHER_FARTA_WA (maamulku wuxuu u furaa/xiraa macalin kasta gaar ahaan)
+function applyFartaWaVisibility(){
+  const waOn = !!(currentTeacher && TEACHER_FARTA_WA[currentTeacher.id]);
+  const waClass = document.getElementById('t-farta-wa-class'); if(waClass) waClass.classList.toggle('hidden', !waOn);
+  const waTeacher = document.getElementById('t-farta-wa-teacher'); if(waTeacher) waTeacher.classList.toggle('hidden', !waOn);
 }
 // ---------- Teacher: my inspection results (what management inspected + notes) ----------
 function renderTeacherInspections(){
@@ -2387,6 +2548,7 @@ function adminLogin(){
       showView('view-admin');
       startAdminInspections();
       switchAdminTab('dash');
+      applyFeatureConfigToAdminUI();
       renderStudentList(); renderTeacherList();
     } else {
       document.getElementById('a-login-err').textContent = 'PIN khalad ah.';
@@ -2436,7 +2598,7 @@ function switchAdminTab(tab){
   if(tab==='qoritur') renderQoriTuur();
   if(tab==='farta') renderFartaTable();
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
-  if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); renderTeacherFeatureSettings(); const deptSel=document.getElementById('new-book-dept'); if(deptSel && CURRENT_DEPT) deptSel.value = CURRENT_DEPT; }
+  if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); const deptSel=document.getElementById('new-book-dept'); if(deptSel && CURRENT_DEPT) deptSel.value = CURRENT_DEPT; }
 }
 
 // ---------- Dashboard: ranked flagged students ----------
@@ -3396,6 +3558,17 @@ function renderTeacherList(){
             </label>`).join('') : '<span class="muted">Weli buug looma soo gelin qaybtan.</span>'}
         </div>
       </div>
+      ${featureCfg(CURRENT_DEPT,'farta').enabled ? `
+      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" ${TEACHER_FARTA[id] ? 'checked' : ''} onchange="toggleTeacherFarta('${id}', this.checked)">
+          ✍️ U furan ${escapeHtml(featureCfg(CURRENT_DEPT,'farta').label)}
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;margin-top:6px;">
+          <input type="checkbox" ${TEACHER_FARTA_WA[id] ? 'checked' : ''} onchange="toggleTeacherFartaWa('${id}', this.checked)">
+          📤 U ogolow inuu Xogta ${escapeHtml(featureCfg(CURRENT_DEPT,'farta').label)} WhatsApp u diro
+        </label>
+      </div>` : ''}
       <div id="t-edit-${id}" class="hidden" style="margin-top:10px;">
         <div class="row">
           <div>
@@ -3462,6 +3635,12 @@ function refreshTeacherSectionSelect(fasalInputId, sectionSelectId){
 }
 function toggleTeacherBook(teacherId, bookId, isOn){
   db.child('teacherBooks/'+teacherId+'/'+bookId).set(!!isOn).then(()=>toast(isOn ? 'Buugga waa loo furay macalinka.' : 'Buugga waa laga xiray macalinka.'));
+}
+function toggleTeacherFartaWa(teacherId, isOn){
+  db.child('teacherFartaWa/'+teacherId).set(!!isOn).then(()=>toast(isOn ? 'Macalinku wuu u diri karaa xogta WhatsApp.' : 'Macalinku ma u diri karo xogta WhatsApp.'));
+}
+function toggleTeacherFarta(teacherId, isOn){
+  db.child('teacherFarta/'+teacherId).set(!!isOn).then(()=>toast(isOn ? 'Macalinku wuu arki karaa Tartanka Farta Laatiinka.' : 'Macalinku ma arki karo Tartanka Farta Laatiinka.'));
 }
 function toggleEditTeacher(id){
   const el = document.getElementById('t-edit-'+id);
@@ -3713,6 +3892,7 @@ function renderFartaTable(prefix='farta'){
   wrap.innerHTML = html;
   groups.forEach((g, gi)=> fartaGroupTotal('g'+gi, prefix));
   renderFartaRanking(prefix);
+  renderFartaStudentRanking(prefix);
   if(prefix==='farta') renderFartaTeacherList();
 }
 function readFartaRow(studentId, prefix='farta'){
@@ -3750,6 +3930,45 @@ function renderFartaRanking(prefix='farta'){
     const medal = i===0 ? '🥇 ' : (i===1 ? '🥈 ' : (i===2 ? '🥉 ' : ''));
     return `<li>${medal}<b>${escapeHtml(l.claseName)}</b> — Wadarta: <b>${l.wadarta}</b></li>`;
   }).join('') + '</ol>';
+}
+function fartaRankedStudentList(){
+  const groups = fartaGroupsFromQoriTuur();
+  const lista = [];
+  groups.forEach(g=>{
+    const claseName = [g.fasal, g.section].filter(Boolean).join(' ');
+    g.winners.forEach(w=>{
+      const scores = (FARTA_LAATIINKA[w.studentId] && FARTA_LAATIINKA[w.studentId].scores) || {};
+      const total = FARTA_LAATIINKA[w.studentId] ? (FARTA_LAATIINKA[w.studentId].total || 0) : 0;
+      lista.push({name: w.name, claseName, scores, total});
+    });
+  });
+  lista.sort((a,b)=> b.total-a.total);
+  return lista;
+}
+function renderFartaStudentRanking(prefix='farta'){
+  const el = document.getElementById(`${prefix}-student-ranking`);
+  if(!el) return;
+  const lista = fartaRankedStudentList();
+  if(lista.length===0){ el.innerHTML = '<p class="muted">Weli dhibco lama diiwaangelin.</p>'; return; }
+  el.innerHTML = `<table style="border-collapse:collapse;width:100%;font-size:0.85rem;min-width:${700+FARTA_CATEGORIES.length*90}px;">
+    <thead><tr style="background:#f4f4f0;">
+      <th style="padding:6px;border:1px solid #ddd;">No</th>
+      <th style="padding:6px;border:1px solid #ddd;text-align:left;">Magaca ardayga</th>
+      ${FARTA_CATEGORIES.map(c=>`<th style="padding:6px;border:1px solid #ddd;font-size:0.75rem;max-width:110px;">${escapeHtml(c.label)} <span class="muted">(/${c.max})</span></th>`).join('')}
+      <th style="padding:6px;border:1px solid #ddd;">Fasalka</th>
+      <th style="padding:6px;border:1px solid #ddd;">Wadarta dhibcaha</th>
+    </tr></thead><tbody>
+    ${lista.map((l,i)=>{
+      const medal = i===0 ? '🥇 ' : (i===1 ? '🥈 ' : (i===2 ? '🥉 ' : ''));
+      return `<tr>
+        <td style="padding:6px;border:1px solid #ddd;text-align:center;">${medal}${i+1}</td>
+        <td style="padding:6px;border:1px solid #ddd;font-weight:600;">${escapeHtml(l.name)}</td>
+        ${FARTA_CATEGORIES.map(c=>`<td style="padding:6px;border:1px solid #ddd;text-align:center;">${l.scores[c.id] ?? 0}</td>`).join('')}
+        <td style="padding:6px;border:1px solid #ddd;text-align:center;">${escapeHtml(l.claseName)}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:center;font-weight:700;">${l.total}</td>
+      </tr>`;
+    }).join('')}
+    </tbody></table>`;
 }
 // ---------- Farta Laatiinka: WhatsApp ----------
 function fartaTotalFor(studentId){
@@ -3854,6 +4073,130 @@ function sendFartaTeacherRankingToGroup(){
   const msg = buildFartaTeacherRankingMessage();
   if(!msg){ toast('Weli dhibco lama diiwaangelin.'); return; }
   window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+}
+// ---------- Farta Laatiinka: Print & PDF ----------
+function printFartaTable(prefix='farta'){
+  const groups = fartaGroupsFromQoriTuur();
+  if(groups.length===0){ toast('Wali lama samayn "Qori Tuur". Weli jadwal lama sameyn oo la print gareeyo.'); return; }
+  const win = window.open('', '_blank');
+  if(!win){ toast('Browser-ku wuu xiray pop-up-ka. Fadlan ogolow oo isku day mar kale.'); return; }
+  let no = 0;
+  let rowsHtml = '';
+  groups.forEach(g=>{
+    const claseName = [g.fasal, g.section].filter(Boolean).join(' ');
+    g.winners.forEach((w, wi)=>{
+      no++;
+      rowsHtml += `<tr>
+        <td>${no}</td>
+        <td style="text-align:left;font-weight:600;">${escapeHtml(w.name)}</td>
+        ${FARTA_CATEGORIES.map(()=>`<td class="blank-box"></td>`).join('')}
+        <td class="blank-box"></td>
+        ${wi===0 ? `<td class="blank-box" rowspan="${g.winners.length}"></td>` : ''}
+        ${wi===0 ? `<td rowspan="${g.winners.length}">${escapeHtml(claseName)}</td>` : ''}
+      </tr>`;
+    });
+  });
+  const headHtml = `<tr>
+    <th>No</th>
+    <th style="text-align:left;">Magaca ardayga</th>
+    ${FARTA_CATEGORIES.map(c=>`<th>${escapeHtml(c.label)}<br><span style="font-weight:normal;">(/${c.max})</span></th>`).join('')}
+    <th>Wadarta dhibcaha ee ardayga</th>
+    <th>Wadarta dhibcaha ee fasalka</th>
+    <th>Magaca fasalka</th>
+  </tr>`;
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Tartanka Farta Laatiinka</title>
+    <style>
+      body{font-family:Arial, sans-serif; padding:16px; color:#222;}
+      h2{text-align:center;margin-bottom:4px;}
+      p.sub{text-align:center;color:#666;margin-top:0;margin-bottom:16px;font-size:0.85rem;}
+      table{border-collapse:collapse;width:100%;font-size:11px;}
+      th,td{border:1px solid #999;padding:4px 6px;text-align:center;vertical-align:middle;}
+      th{background:#f0f0f0;}
+      td.blank-box{height:28px;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h2>✍️ Tartanka Farta Laatiinka</h2>
+    <p class="sub">AL-XIKMA SCHOOL — ${new Date().toLocaleDateString('so',{day:'2-digit',month:'long',year:'numeric'})}</p>
+    <table><thead>${headHtml}</thead><tbody>${rowsHtml}</tbody></table>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 300);
+}
+function printFartaResults(){
+  const lista = fartaRankedStudentList();
+  if(lista.length===0){ toast('Weli dhibco lama diiwaangelin oo la print gareeyo.'); return; }
+  const win = window.open('', '_blank');
+  if(!win){ toast('Browser-ku wuu xiray pop-up-ka. Fadlan ogolow oo isku day mar kale.'); return; }
+  const headHtml = `<tr>
+    <th>No</th>
+    <th style="text-align:left;">Magaca ardayga</th>
+    ${FARTA_CATEGORIES.map(c=>`<th>${escapeHtml(c.label)}<br><span style="font-weight:normal;">(/${c.max})</span></th>`).join('')}
+    <th>Fasalka</th>
+    <th>Wadarta</th>
+  </tr>`;
+  const rowsHtml = lista.map((l,i)=>{
+    const medal = i===0 ? '🥇 ' : (i===1 ? '🥈 ' : (i===2 ? '🥉 ' : ''));
+    return `<tr>
+      <td>${medal}${i+1}</td>
+      <td style="text-align:left;font-weight:600;">${escapeHtml(l.name)}</td>
+      ${FARTA_CATEGORIES.map(c=>`<td>${l.scores[c.id] ?? 0}</td>`).join('')}
+      <td>${escapeHtml(l.claseName)}</td>
+      <td style="font-weight:700;">${l.total}</td>
+    </tr>`;
+  }).join('');
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Natiijada Tartanka Farta Laatiinka</title>
+    <style>
+      body{font-family:Arial, sans-serif; padding:16px; color:#222;}
+      h2{text-align:center;margin-bottom:4px;}
+      p.sub{text-align:center;color:#666;margin-top:0;margin-bottom:16px;font-size:0.85rem;}
+      table{border-collapse:collapse;width:100%;font-size:11px;}
+      th,td{border:1px solid #999;padding:4px 6px;text-align:center;vertical-align:middle;}
+      th{background:#f0f0f0;}
+      @media print{ body{padding:0;} }
+    </style></head><body>
+    <h2>🏆 Natiijada Tartanka Farta Laatiinka</h2>
+    <p class="sub">AL-XIKMA SCHOOL — ${new Date().toLocaleDateString('so',{day:'2-digit',month:'long',year:'numeric'})}</p>
+    <table><thead>${headHtml}</thead><tbody>${rowsHtml}</tbody></table>
+    </body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(()=>{ win.print(); }, 300);
+}
+function fartaExportRows(){
+  const groups = fartaGroupsFromQoriTuur();
+  const head = ['#', 'Magaca Ardayga', ...FARTA_CATEGORIES.map(c=>`${c.label} (/${c.max})`), 'Wadarta', 'Fasalka'];
+  const body = [];
+  groups.forEach(g=>{
+    const claseName = [g.fasal, g.section].filter(Boolean).join(' ');
+    g.winners.forEach(w=>{
+      const scores = (FARTA_LAATIINKA[w.studentId] && FARTA_LAATIINKA[w.studentId].scores) || {};
+      const total = FARTA_LAATIINKA[w.studentId] ? (FARTA_LAATIINKA[w.studentId].total || 0) : 0;
+      body.push([String(body.length+1), w.name, ...FARTA_CATEGORIES.map(c=>String(scores[c.id] ?? '')), String(total), claseName]);
+    });
+  });
+  return { head, body };
+}
+function exportFartaPdf(prefix='farta'){
+  if(!window.jspdf){ toast('PDF library-ga lama soo shubin. Fadlan hubi internet-ka.'); return; }
+  const { head, body } = fartaExportRows();
+  if(body.length === 0){ toast('Weli dhibco lama diiwaangelin oo la keydiyo PDF.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+  doc.setFontSize(13);
+  doc.text('AL-XIKMA SCHOOL', 14, 15);
+  doc.setFontSize(11);
+  doc.text('Tartanka Farta Laatiinka — Dhibcaha Ardayda', 14, 22);
+  doc.setFontSize(9);
+  doc.text(`Taariikhda: ${new Date().toLocaleDateString('so',{day:'2-digit',month:'long',year:'numeric'})}`, 14, 28);
+  doc.autoTable({
+    startY: 33,
+    head: [head],
+    body: body,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [31, 61, 46], textColor: [255, 255, 255] }
+  });
+  doc.save(`farta-laatiinka-${new Date().toISOString().slice(0,10)}.pdf`);
 }
 function renderQoriTuur(){
   const el = document.getElementById('qt-list');
