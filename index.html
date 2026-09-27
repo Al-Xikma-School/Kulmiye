@@ -49,33 +49,35 @@
   ::-webkit-scrollbar-thumb:hover{background:rgba(245,242,232,0.4);}
   a{color:inherit;}
   .frame{
-    border-top:14px solid var(--wood);
-    border-bottom:14px solid var(--wood);
+    border-top:6px solid var(--wood);
+    border-bottom:6px solid var(--wood);
     background-image:repeating-linear-gradient(90deg, var(--wood) 0 2px, var(--wood-light) 2px 4px);
-    background-size:100% 14px;
+    background-size:100% 6px;
     background-repeat:no-repeat;
     background-position:top,bottom;
   }
   header{
     text-align:center;
-    padding:30px 16px 22px;
+    padding:8px 16px 6px;
   }
   header h1{
     font-family:'Kalam',cursive;
     font-weight:700;
-    font-size:2.15rem;
+    font-size:1.1rem;
     margin:0;
     color:var(--chalk-yellow);
     text-shadow:0 0 18px rgba(232,196,104,0.3);
     letter-spacing:0.5px;
+    display:inline;
   }
   header p{
     font-family:'Kalam',cursive;
     color:var(--chalk-dim);
-    margin:6px 0 0;
-    font-size:1rem;
+    margin:0 0 0 8px;
+    font-size:0.72rem;
+    display:inline;
   }
-  .wrap{max-width:880px;margin:0 auto;padding:20px 16px 60px;}
+  .wrap{max-width:1400px;margin:0 auto;padding:14px 20px 60px;}
   .card{
     background:var(--paper);
     color:var(--ink);
@@ -4134,22 +4136,57 @@ function renderFartaTeacherList(){
     </div>`;
   }).join('');
 }
+// Xisaabinta qodobbada (categories) ee ardayda hal macalin — waxay soo saartaa celceliska boqolkiiba qodob kasta,
+// si loo ogaado meelaha ay ku fiican yihiin iyo meelaha ay u baahan yihiin dadaal dheeraad ah.
+function fartaCategoryBreakdown(winners){
+  if(!winners || winners.length===0) return [];
+  const sums = {}; FARTA_CATEGORIES.forEach(c=>{ sums[c.id]=0; });
+  winners.forEach(w=>{
+    const rec = FARTA_LAATIINKA[w.studentId];
+    const scores = rec ? (rec.scores||{}) : {};
+    FARTA_CATEGORIES.forEach(c=>{ sums[c.id] += Number(scores[c.id]||0); });
+  });
+  const n = winners.length;
+  return FARTA_CATEGORIES.filter(c=>c.max>0).map(c=>{
+    const avgScore = sums[c.id]/n;
+    return {id:c.id, label:c.label, max:c.max, avgScore, pct: (avgScore/c.max)*100};
+  });
+}
 // Fariinta hal macalin — dhammaan fasalladiisa oo isku daran, sida "NATIIJADA GUUD EE MACALINKA"
 function buildFartaTeacherCombinedMessage(teacherId){
   const agg = fartaTeacherAggregates().find(a=>a.teacherId===teacherId);
   if(!agg) return '';
-  const dash = '------------------------------------';
-  const lines = agg.winners.map((w,i)=> `${i+1}. ${w.name}  (${w.claseName}) → ${fartaTotalFor(w.studentId)}`).join('\n');
-  return `◆ NATIIJADA GUUD EE MACALINKA ◆\n\n`+
-    `Macalin: *${agg.teacherName} *\n`+
-    `Fasallada: ${agg.classes.join(', ')}\n`+
+  const dash = '━━━━━━━━━━━━━━━━━━━━';
+  const ranked = agg.winners.slice().sort((a,b)=> fartaTotalFor(b.studentId) - fartaTotalFor(a.studentId));
+  const medal = (i)=> i===0 ? '🥇' : (i===1 ? '🥈' : (i===2 ? '🥉' : '▪️'));
+  const lines = ranked.map((w,i)=> `${medal(i)} *${w.name}*  (${w.claseName}) → *${fartaTotalFor(w.studentId)}* dhibcood`).join('\n');
+
+  const breakdown = fartaCategoryBreakdown(agg.winners);
+  const strong = breakdown.slice().sort((a,b)=> b.pct-a.pct).filter(b=>b.pct>=65).slice(0,3);
+  const weak = breakdown.slice().sort((a,b)=> a.pct-b.pct).filter(b=>b.pct<70).slice(0,3);
+
+  let verdict;
+  if(agg.avg>=80) verdict = `🎉 *Hambalyo macalin ${agg.teacherName}!* Ardaydaadu waxay ka muujiyeen natiijo aad u fiican — sii wad dadaalkan qiimaha leh! 👏🌟`;
+  else if(agg.avg>=60) verdict = `👏 *Hambalyo!* Ardaydaadu waxay soo bandhigeen natiijo wanaagsan, balse weli waxaa jira meelo la hagaajin karo si loo gaaro heer ka sarreeya. 💪`;
+  else verdict = `📢 Ardaydaadu waxay u baahan yihiin dadaal dheeraad ah si ay tartanka soo socda ugu guulaystaan — waad awoodaa macalin! 💪`;
+
+  const strongTxt = strong.length ? `✅ *Waxay ku fiican yihiin:* ${strong.map(s=>s.label).join('، ')}\n` : '';
+  const weakTxt = weak.length ? `📌 *Meelaha loo baahan yahay dadaal dheeraad ah:* ${weak.map(s=>s.label).join('، ')}\n` : '';
+  const talo = weak.length ? `💡 *Talo:* Fadlan si gaar ah macalin ugu dalaal barashada qodobbadan kor ku xusan, si ardaydu tartanka soo socda ugu guulaystaan. 🙏\n` : '';
+
+  return `🏆 *NATIIJADA GUUD EE MACALINKA* 🏆\n\n`+
+    `👨‍🏫 Macalin: *${agg.teacherName}*\n`+
+    `🏫 Fasallada: *${agg.classes.join(', ')}*\n`+
     `${dash}\n`+
-    `LIISKA ARDAYDA IYO DHIBCAHA:\n\n`+
+    `📋 *LIISKA ARDAYDA IYO DHIBCAHA:*\n\n`+
     `${lines}\n\n`+
     `${dash}\n`+
-    `◆ WADARTA DHIBCAHA: ${agg.total}\n`+
-    `◆ CELCELISKA GUUD (100%): ${agg.avg.toFixed(1)}\n\n`+
-    `Maamulka Tartanka.`;
+    `➕ *WADARTA DHIBCAHA:* ${agg.total}\n`+
+    `📊 *CELCELISKA GUUD (100%):* ${agg.avg.toFixed(1)}\n`+
+    `${dash}\n\n`+
+    `${strongTxt}${weakTxt}${talo}\n`+
+    `${verdict}\n\n`+
+    `🖋️ *Maamulka Tartanka.*`;
 }
 function sendFartaToTeacher(teacherId){
   const teacherPhone = (TEACHERS[teacherId] && TEACHERS[teacherId].phone) ? String(TEACHERS[teacherId].phone).replace(/[^0-9+]/g,'') : '';
@@ -4169,12 +4206,18 @@ function buildFartaClassRankingMessage(){
     const avg = g.winners.length ? total / g.winners.length : 0;
     return {claseName, total, avg};
   }).sort((a,b)=> b.avg - a.avg);
-  const lines = ranked.map((r,i)=> `${i+1}. *${r.claseName}* → ${r.total} dhibcood (celceliska: ${r.avg.toFixed(1)})`).join('\n');
-  return `◆ KAALINTA FASALLADA – TARTANKA FARTA LAATIINKA ◆\n\n`+
+  const medal = (i)=> i===0 ? '🥇' : (i===1 ? '🥈' : (i===2 ? '🥉' : '▪️'));
+  const lines = ranked.map((r,i)=> `${medal(i)} *${r.claseName}* → *${r.total}* dhibcood (celceliska: ${r.avg.toFixed(1)})`).join('\n');
+  const top = ranked[0];
+  const bottom = ranked[ranked.length-1];
+  const hambalyo = top ? `🎉 *Hambalyo* fasalka *${top.claseName}*, ee ku guuleystay kaalinta koowaad! 👏🌟\n` : '';
+  const talo = (bottom && ranked.length>1) ? `💡 *Talo:* Fasalka *${bottom.claseName}* fadlan ha dadaal dheeraad ah lagu daro si loo gaaro heerka kale ee fasallada. 💪\n` : '';
+  return `🏆 *KAALINTA FASALLADA – TARTANKA FARTA LAATIINKA* 🏆\n\n`+
     `${dash}\n`+
     `${lines}\n`+
     `${dash}\n\n`+
-    `Maamulka Tartanka.`;
+    `${hambalyo}${talo}\n`+
+    `🖋️ *Maamulka Tartanka.*`;
 }
 function sendFartaClassRankingToGroup(){
   const msg = buildFartaClassRankingMessage();
@@ -4185,12 +4228,18 @@ function buildFartaTeacherRankingMessage(){
   const ranked = fartaTeacherAggregates().sort((a,b)=> b.avg - a.avg);
   if(ranked.length===0) return '';
   const dash = '------------------------------------';
-  const lines = ranked.map((t,i)=> `${i+1}. *${t.teacherName}* → celceliska ${t.avg.toFixed(1)}`).join('\n');
-  return `◆ KAALINTA MACALIMIINTA – TARTANKA FARTA LAATIINKA ◆\n\n`+
+  const medal = (i)=> i===0 ? '🥇' : (i===1 ? '🥈' : (i===2 ? '🥉' : '▪️'));
+  const lines = ranked.map((t,i)=> `${medal(i)} *${t.teacherName}* → celceliska *${t.avg.toFixed(1)}*`).join('\n');
+  const top = ranked[0];
+  const bottom = ranked[ranked.length-1];
+  const hambalyo = top ? `🎉 *Hambalyo* macalin *${top.teacherName}*, ee ku guuleystay kaalinta koowaad! 👏🌟\n` : '';
+  const talo = (bottom && ranked.length>1) ? `💡 *Talo:* Macalin *${bottom.teacherName}* fadlan dadaal dheeraad ah ha ku dhiirigeliyo ardaydiisa. 💪\n` : '';
+  return `🏆 *KAALINTA MACALIMIINTA – TARTANKA FARTA LAATIINKA* 🏆\n\n`+
     `${dash}\n`+
     `${lines}\n`+
     `${dash}\n\n`+
-    `Maamulka Tartanka.`;
+    `${hambalyo}${talo}\n`+
+    `🖋️ *Maamulka Tartanka.*`;
 }
 function sendFartaTeacherRankingToGroup(){
   const msg = buildFartaTeacherRankingMessage();
