@@ -851,6 +851,18 @@
     font-size:20px;
     cursor:pointer;
   }
+  /* ===== Basaska / Dareewalada ===== */
+  .bus-card{background:#fff;border:1px solid #e4d9bd;border-radius:12px;padding:12px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
+  .bus-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;cursor:pointer;}
+  .bus-name{font-weight:700;font-size:1.05rem;color:var(--ink);}
+  .bus-tel{font-size:0.8rem;color:#7a6c50;}
+  .bus-sum{font-size:0.85rem;margin-top:4px;color:var(--ink);}
+  .bus-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .bus-tbl-wrap{overflow-x:auto;margin-top:10px;}
+  .bus-tbl{min-width:520px;}
+  .bus-tbl td,.bus-tbl th{padding:4px;border-bottom:1px solid #eee3c8;text-align:left;font-size:0.82rem;}
+  .bus-tbl input,.bus-tbl select{padding:5px 6px;font-size:0.82rem;min-width:70px;}
+  .bus-tbl .fee{width:70px;min-width:60px;}
 </style>
 </head>
 <body>
@@ -1099,6 +1111,7 @@
           <div class="tab" id="admintab-inspect" data-tab="inspect" data-label="Taftiishka Maamulka" onclick="switchAdminTab('inspect')"><span class="tab-icon">🔍</span> <span class="tab-label-text">Taftiishka Maamulka</span></div>
           <div class="tab" id="admintab-qoritur" data-tab="qoritur" data-label="Qori Tuur" onclick="switchAdminTab('qoritur')"><span class="tab-icon">🎯</span> <span class="tab-label-text">Qori Tuur</span></div>
           <div class="tab" id="admintab-farta" data-tab="farta" data-label="Tartanka Farta Laatiinka" onclick="switchAdminTab('farta')"><span class="tab-icon">✍️</span> <span class="tab-label-text">Farta Laatiinka</span></div>
+          <div class="tab" id="admintab-basas" data-tab="basas" data-label="Basaska / Dareewalada" onclick="switchAdminTab('basas')"><span class="tab-icon">🚌</span> <span class="tab-label-text">Basaska / Dareewalada</span></div>
           <div class="tab" id="admintab-settings" data-tab="settings" data-label="Settings" onclick="switchAdminTab('settings')"><span class="tab-icon">⚙️</span> Settings</div>
         </div>
         <div class="sidebar-logout">
@@ -1492,6 +1505,44 @@
 </div>
     </div>
 
+    <div id="tab-basas" class="admin-tab hidden">
+      <div class="card">
+        <h3>🔗 Isku-xirka Google Sheet</h3>
+        <p class="muted" id="basas-src-note"></p>
+        <label>Link-ga Web App (Apps Script)</label>
+        <input type="text" id="basas-sheet-url" placeholder="https://script.google.com/macros/s/.../exec">
+        <div class="center" style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+          <button class="btn-primary btn-sm" onclick="basasSaveUrl()">💾 Kaydi &amp; Xir</button>
+          <button class="btn-ghost btn-sm" onclick="basasLoadSheet()">🔄 Cusboonaysii hadda</button>
+          <button class="btn-ghost btn-sm" onclick="basasDisconnect()">❌ Jooji</button>
+        </div>
+        <p class="muted center" id="basas-sheet-status"></p>
+      </div>
+      <div class="card">
+        <h2 id="admin-basas-h2">🚌 Basaska / Dareewalada</h2>
+        <p class="muted">Darawal kasta ku dar ardaydiisa (Iskuul ama Xadaano), lacagta bisha, iyo telefoonada waalidka. Xisaabta iyo liiska taleefonnada waxaa loo diraa WhatsApp, sida sheet-kii hore. Lacag = 0 waxay noqonaysaa Bilaash.</p>
+        <div class="stat-grid" id="basas-stats"></div>
+        <div class="center" style="margin-top:14px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
+          <button class="btn-whatsapp btn-sm" onclick="basasSendAdmin('bas','farxaan')">📝 Bas-bas → Farxaan</button>
+          <button class="btn-whatsapp btn-sm" onclick="basasSendAdmin('bas','maxamed')">📝 Bas-bas → Maxamed</button>
+          <button class="btn-whatsapp btn-sm" onclick="basasSendAdmin('guud','farxaan')">📱 Guud → Farxaan</button>
+          <button class="btn-whatsapp btn-sm" onclick="basasSendAdmin('guud','maxamed')">📱 Guud → Maxamed</button>
+          <button class="btn-whatsapp btn-sm" onclick="basasSendKoox('bas')">📤 Koox: Bas-bas</button>
+          <button class="btn-whatsapp btn-sm" onclick="basasSendKoox('guud')">📤 Koox: Guud</button>
+        </div>
+      </div>
+      <div class="card" id="basas-add-card">
+        <h3>➕ Ku dar Darawal</h3>
+        <label>Magaca Darawalka</label>
+        <input type="text" id="basas-new-name" placeholder="Tusaale: Cabdi">
+        <label>Telefoonka Darawalka</label>
+        <input type="tel" id="basas-new-phone" placeholder="Tusaale: 907123456">
+        <div class="center" style="margin-top:12px;"><button class="btn-primary btn-sm" onclick="basasAddDriver()">➕ Ku dar Darawalka</button></div>
+      </div>
+      <div id="basas-list"></div>
+      <datalist id="basas-students-dl"></datalist>
+    </div>
+
     <div id="tab-settings" class="admin-tab hidden">
       <div class="card">
         <h3>🔑 Beddel PIN-ka Maamulka</h3>
@@ -1589,9 +1640,10 @@ const FEATURE_DEFS = [
   {id:'inspect',  icon:'🔍', defaultLabel:'Taftiishka Maamulka'},
   {id:'qoritur',  icon:'🎯', defaultLabel:'Qori Tuur'},
   {id:'farta',    icon:'✍️', defaultLabel:'Farta Laatiinka'},
-  {id:'dash',     icon:'📋', defaultLabel:'Ardayda Hoosaysa'}
+  {id:'dash',     icon:'📋', defaultLabel:'Ardayda Hoosaysa'},
+  {id:'basas',    icon:'🚌', defaultLabel:'Basaska / Dareewalada'}
 ];
-const ADMIN_TAB_IDS = {teachers:'admintab-teachers', students:'admintab-students', meetings:'admintab-meetings', inspect:'admintab-inspect', qoritur:'admintab-qoritur', farta:'admintab-farta', dash:'admintab-lowperf'};
+const ADMIN_TAB_IDS = {teachers:'admintab-teachers', students:'admintab-students', meetings:'admintab-meetings', inspect:'admintab-inspect', qoritur:'admintab-qoritur', farta:'admintab-farta', dash:'admintab-lowperf', basas:'admintab-basas'};
 // Nested under 'ardaydaHoosaysa' (not a new top-level path) so it works under the existing Firebase rules.
 const featureConfigRef = firebase.database().ref('ardaydaHoosaysa/featureConfig');
 let FEATURE_CONFIG = {iskuul:{}, quraan:{}};
@@ -2669,6 +2721,7 @@ function switchAdminTab(tab){
   if(tab==='inspect'){ populateInspectTeacherDropdown(); populateInspectMonthFilter(); renderInspectionRanking(); renderInspectionMatrix(); renderInspectionHistory(); }
   if(tab==='qoritur') renderQoriTuur();
   if(tab==='farta') renderFartaTable();
+  if(tab==='basas'){ renderBasas(); basasLoadSheet(); }
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
   if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); const deptSel=document.getElementById('new-book-dept'); if(deptSel && CURRENT_DEPT) deptSel.value = CURRENT_DEPT; }
 }
@@ -5191,6 +5244,307 @@ function deleteBook(id){
 function escapeHtml(str){
   return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
+
+// ================= BASASKA / DAREEWALADA =================
+// Xogta waa la wadaagaa labada qaybood (Iskuul & Quraan): ardaydaHoosaysa/basas
+// BASAS[driverId] = {name, phone, createdAt, students:{sid:{name, phone1, phone2, fee, type:'iskuul'|'xadaano', createdAt}}}
+const BASAS_ADMINS = {farxaan:{tel:'907635814', name:'Maamule Farxaan'}, maxamed:{tel:'907742651', name:'Maamule Maxamed'}};
+const basasRef = firebase.database().ref('ardaydaHoosaysa/basas');
+let BASAS = {};
+let BASAS_OPEN = new Set();
+basasRef.on('value', snap=>{ BASAS_FB = snap.val() || {}; basasApply(); }, err=>console.error('basas listener error:', err));
+
+function bEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function bNum(n){ return parseFloat((Number(n)||0).toFixed(2)); }
+function basasMonth(){ const d=new Date(); return (d.getMonth()+1)+'/'+d.getFullYear(); }
+function basasSorted(d){
+  return Object.entries((d && d.students) || {}).map(([id,s])=>Object.assign({id}, s)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+}
+function basasPhones(s){
+  const t1=String(s.phone1||'').trim(), t2=String(s.phone2||'').trim();
+  if(t1 && t2) return t1+' iyo '+t2;
+  return t1 || t2 || "lambar la'aan";
+}
+// Sida xisaabiSheetGaar(): mode 'lacag' = liisas lacagta leh + bilaash; mode 'tel' = dhammaan ardayda + telefoonada
+function basasCalc(d, mode){
+  const r = {tI:0, tX:0, lI:[], lX:[], lF:[], darawal:(d.name||'')};
+  let cI=1, cX=1, cF=1;
+  basasSorted(d).forEach(s=>{
+    const fee = Number(s.fee)||0, isX = s.type==='xadaano';
+    if(mode==='lacag'){
+      if(fee===0){ r.lF.push((cF++)+'. '+s.name+' (Bilaash)'); }
+      else if(isX){ r.tX+=fee; r.lX.push((cX++)+'. '+s.name+' ($'+bNum(fee)+')'); }
+      else { r.tI+=fee; r.lI.push((cI++)+'. '+s.name+' ($'+bNum(fee)+')'); }
+    } else {
+      if(isX) r.lX.push((cX++)+'. '+s.name+' '+basasPhones(s));
+      else r.lI.push((cI++)+'. '+s.name+' '+basasPhones(s));
+    }
+  });
+  r.tI=bNum(r.tI); r.tX=bNum(r.tX);
+  return r;
+}
+function basasMsgXisaab(d){
+  const n = basasCalc(d,'lacag');
+  return "🚌 *XISAABTA BASASKA*\n\n" +
+    "👨‍✈️ *Darawal:* " + n.darawal.toUpperCase() + "\n" +
+    "📅 *Bisha:* " + basasMonth() + "\n\n" +
+    "🏫 *LIISKA ISKUULKA:*\n" + (n.lI.join("\n") || "_Ma jiro_") + "\n\n" +
+    "👶 *LIISKA XADAANADA:*\n" + (n.lX.join("\n") || "_Ma jiro_") + "\n\n" +
+    "🎁 *ARDAYDA BILAASHKA (FREE):*\n" + (n.lF.join("\n") || "_Ma jiro_") + "\n\n" +
+    "--------------------------\n" +
+    "🏢 *Iskuul: $" + n.tI + "*\n" +
+    "🧸 *Xadaano: $" + n.tX + "*\n" +
+    "💰 *WADAR: $" + bNum(n.tI+n.tX) + "*\n\n" +
+    "✨ *NASEEXO:*\n" +
+    "Darawal *" + n.darawal.toUpperCase() + "* iska hubi liiskaan hadday wax kaa maqan yihiin iyo haddii wax kula socdaan si aad xalaal u quudatid.\n\n" +
+    "قال رسول الله صلى الله عليه وسلم:\n" +
+    "*(كُلُّ لَحْمٍ نَبَتَ مِن سُحْتٍ فَالنَّارُ أَوْلَى بِهِ)*\n" +
+    "*(Hilib kasta oo ku soo baxa xaaraan, naarta ayaa u mudan).*\n\n" +
+    "📞 *Tell:* 907742651\n" +
+    "🖋️ *Xisaabiye:* Maxamed Cusmaan Faarax";
+}
+function basasMsgTel(d){
+  const n = basasCalc(d,'tel');
+  return "📞 *LIISKA TALEEFONNADA*\n\n" +
+    "👨‍✈️ *Darawal:* " + n.darawal.toUpperCase() + "\n\n" +
+    "🏫 *ARDAYDA ISKUULKA:*\n" + (n.lI.join("\n") || "_Ma jiro_") + "\n\n" +
+    "👶 *ARDAYDA XADAANADA:*\n" + (n.lX.join("\n") || "_Ma jiro_") + "\n\n" +
+    "⚠️ *OGAYSIIS MUHIIM AH:*\n" +
+    "Fadlan darewal " + n.darawal.toUpperCase() + " lambaradaas ka wac waalidka ilmaha haddii aad waydid ama guriga lagaa furi waayo iyo hadduu daahid badan yahay inta aadan gaarin sii wac.";
+}
+function basasMsgBasBas(){
+  let faah="", wI=0, wX=0;
+  Object.values(BASAS).forEach(d=>{
+    const n = basasCalc(d,'lacag');
+    if(n.tI + n.tX > 0){
+      faah += "🚌 *Bus:* " + n.darawal.toUpperCase() + "\n" +
+              "   🏫 Iskuul: $" + n.tI + " + 👶 Xadaano: $" + n.tX + " = 💰 *$" + bNum(n.tI+n.tX) + "*\n\n";
+      wI += n.tI; wX += n.tX;
+    }
+  });
+  wI=bNum(wI); wX=bNum(wX);
+  return "📝 *WARBIXIN FAAHFAAHSAN*\n📅 *Bisha:* " + basasMonth() + "\n--------------------------\n" + faah +
+         "--------------------------\n" +
+         "🏢 *Iskuul: $" + wI + "*\n" +
+         "🧸 *Xadaano/Quraan: $" + wX + "*\n" +
+         "💵 *WADAR: $" + bNum(wI+wX) + "*";
+}
+function basasMsgGuud(){
+  let wI=0, wX=0;
+  Object.values(BASAS).forEach(d=>{ const n=basasCalc(d,'lacag'); wI+=n.tI; wX+=n.tX; });
+  wI=bNum(wI); wX=bNum(wX);
+  return "📊 *WARBIXIN GUUD (DHAMMAAN)*\n📅 *Bisha:* " + basasMonth() + "\n--------------------------\n" +
+         "🏫 *Iskuul: $" + wI + "*\n" +
+         "👶 *Xadaano: $" + wX + "*\n" +
+         "--------------------------\n" +
+         "💰 *WADARTA: $" + bNum(wI+wX) + "*";
+}
+function basasOpenWa(tel, msg){
+  let t = String(tel||'').replace(/\D/g,'');
+  if(!t){ toast('⚠️ Telefoon ma jiro.'); return; }
+  if(t.indexOf('252')!==0) t = '252'+t;
+  window.open('https://wa.me/'+t+'?text='+encodeURIComponent(msg), '_blank');
+}
+function basasOpenWaPick(msg){ window.open('https://wa.me/?text='+encodeURIComponent(msg), '_blank'); } // dooro koox/qof gudaha WhatsApp
+function basasSendXisaab(id){ const d=BASAS[id]; if(!d) return; if(!d.phone){ toast('⚠️ Darawalkan telefoon ma laha.'); return; } basasOpenWa(d.phone, basasMsgXisaab(d)); }
+function basasSendTel(id){ const d=BASAS[id]; if(!d) return; if(!d.phone){ toast('⚠️ Darawalkan telefoon ma laha.'); return; } basasOpenWa(d.phone, basasMsgTel(d)); }
+function basasSendXisaabKoox(id){ const d=BASAS[id]; if(!d) return; basasOpenWaPick(basasMsgXisaab(d)); }
+function basasSendAdmin(kind, who){
+  const a = BASAS_ADMINS[who];
+  basasOpenWa(a.tel, kind==='bas' ? basasMsgBasBas() : basasMsgGuud());
+}
+function basasSendKoox(kind){ basasOpenWaPick(kind==='bas' ? basasMsgBasBas() : basasMsgGuud()); }
+
+// ---------- CRUD ----------
+function basasAddDriver(){
+  const name = document.getElementById('basas-new-name').value.trim();
+  const phone = document.getElementById('basas-new-phone').value.trim();
+  if(!name){ toast('Geli magaca darawalka.'); return; }
+  basasRef.push({name, phone, createdAt: Date.now()}).then(()=>{
+    document.getElementById('basas-new-name').value=''; document.getElementById('basas-new-phone').value='';
+    toast('✅ Darawalka waa la daray.');
+  }).catch(e=>toast('❌ '+e.message));
+}
+function basasEditDriver(id){
+  const d = BASAS[id]; if(!d) return;
+  const name = prompt('Magaca darawalka:', d.name||''); if(name===null) return;
+  const phone = prompt('Telefoonka darawalka:', d.phone||''); if(phone===null) return;
+  if(!name.trim()){ toast('Magaca ma bannaanaan karo.'); return; }
+  basasRef.child(id).update({name:name.trim(), phone:phone.trim()}).then(()=>toast('✅ Waa la cusboonaysiiyay.'));
+}
+function basasDeleteDriver(id){
+  const d = BASAS[id]; if(!d) return;
+  if(!confirm('Ma hubtaa inaad tirtirto darawal "'+d.name+'" iyo dhammaan ardaydiisa?')) return;
+  BASAS_OPEN.delete(id);
+  basasRef.child(id).remove().then(()=>toast('🗑️ Darawalka waa la tirtiray.'));
+}
+function basasToggle(id){ if(BASAS_OPEN.has(id)) BASAS_OPEN.delete(id); else BASAS_OPEN.add(id); renderBasas(); }
+function basasPrefill(id){
+  const nm = document.getElementById('bs-name-'+id).value.trim().toLowerCase();
+  if(!nm) return;
+  const hit = Object.values(STUDENTS||{}).find(s=>String(s.name||'').trim().toLowerCase()===nm);
+  if(hit){
+    const p1=document.getElementById('bs-p1-'+id), p2=document.getElementById('bs-p2-'+id);
+    if(p1 && !p1.value) p1.value = hit.phone1||'';
+    if(p2 && !p2.value) p2.value = hit.phone2||'';
+  }
+}
+function basasAddStudent(id){
+  const g = k=>document.getElementById('bs-'+k+'-'+id);
+  const name = g('name').value.trim();
+  if(!name){ toast('Geli magaca ardayga.'); return; }
+  const fee = Math.max(0, parseFloat(g('fee').value)||0);
+  basasRef.child(id).child('students').push({
+    name, phone1:g('p1').value.trim(), phone2:g('p2').value.trim(), fee, type:g('type').value, createdAt:Date.now()
+  }).then(()=>toast('✅ Ardayga waa la daray.')).catch(e=>toast('❌ '+e.message));
+}
+function basasUpdateStudent(id, sid, field, val){
+  const upd = {};
+  if(field==='fee') upd.fee = Math.max(0, parseFloat(val)||0);
+  else if(field==='type') upd.type = (val==='xadaano' ? 'xadaano' : 'iskuul');
+  else upd[field] = String(val).trim();
+  basasRef.child(id).child('students').child(sid).update(upd).then(()=>{ toast('💾 Waa la kaydiyay.'); renderBasas(); });
+}
+function basasDeleteStudent(id, sid){
+  const s = ((BASAS[id]||{}).students||{})[sid]; if(!s) return;
+  if(!confirm('Ka tirtir "'+s.name+'" darawalkan?')) return;
+  basasRef.child(id).child('students').child(sid).remove().then(()=>toast('🗑️ Ardayga waa la tirtiray.'));
+}
+
+// ---------- Render ----------
+function renderBasas(){
+  const ro = basasIsSheet();
+  const dl = document.getElementById('basas-students-dl');
+  if(dl) dl.innerHTML = Object.values(STUDENTS||{}).map(s=>'<option value="'+bEsc(s.name||'')+'">'+bEsc((s.fasal||'')+' '+(s.section||''))+'</option>').join('');
+  const addCard = document.getElementById('basas-add-card'); if(addCard) addCard.classList.toggle('hidden', ro);
+  const note = document.getElementById('basas-src-note');
+  if(note) note.textContent = ro ? 'Xogta waxay ka timaadaa Google Sheet-ka (akhri kaliya). Wax ka bedel sheet-ka, app-kuna wuu is-cusboonaysiinayaa.' : 'Weli sheet lama xirin — waxaad gacanta ku gelin kartaa darawalada iyo ardayda hoose. Ku dhaji link-ga Web App si sheet-ka loo xiro.';
+  const ids = Object.keys(BASAS).sort((a,b)=>(BASAS[a].createdAt||0)-(BASAS[b].createdAt||0));
+  let tI=0, tX=0, nStud=0;
+  ids.forEach(id=>{ const n=basasCalc(BASAS[id],'lacag'); tI+=n.tI; tX+=n.tX; nStud += Object.keys(BASAS[id].students||{}).length; });
+  tI=bNum(tI); tX=bNum(tX);
+  const st = document.getElementById('basas-stats');
+  if(st) st.innerHTML =
+    '<div class="stat-card stat-blue"><span class="stat-icon">🚌</span><span class="stat-value">'+ids.length+'</span><span class="stat-label">Dareewalada ('+nStud+' arday)</span></div>'+
+    '<div class="stat-card stat-green"><span class="stat-icon">🏫</span><span class="stat-value">$'+tI+'</span><span class="stat-label">Iskuul — '+basasMonth()+'</span></div>'+
+    '<div class="stat-card"><span class="stat-icon">👶</span><span class="stat-value">$'+tX+'</span><span class="stat-label">Xadaano</span></div>'+
+    '<div class="stat-card stat-red"><span class="stat-icon">💰</span><span class="stat-value">$'+bNum(tI+tX)+'</span><span class="stat-label">Wadarta Guud</span></div>';
+  const list = document.getElementById('basas-list');
+  if(!list) return;
+  if(!ids.length){ list.innerHTML = '<div class="card"><p class="muted center">'+(ro?'Sheet-ka darawal kuma jiro.':'Weli darawal lama darin.')+'</p></div>'; return; }
+  list.innerHTML = ids.map(id=>{
+    const d = BASAS[id], n = basasCalc(d,'lacag'), open = BASAS_OPEN.has(id);
+    const total = Object.keys(d.students||{}).length;
+    let body = '';
+    if(open){
+      const rows = basasSorted(d).map(s=> ro ?
+        '<tr><td>'+bEsc(s.name)+'</td><td>'+bEsc(s.phone1||'')+'</td><td>'+bEsc(s.phone2||'')+'</td><td>'+((Number(s.fee)||0)===0?'🎁 Bilaash':'$'+bNum(s.fee))+'</td><td>'+(s.type==='xadaano'?'👶 Xadaano':'🏫 Iskuul')+'</td></tr>' :
+        '<tr>'+
+        '<td>'+bEsc(s.name)+'</td>'+
+        '<td><input type="tel" value="'+bEsc(s.phone1||'')+'" onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'phone1\',this.value)"></td>'+
+        '<td><input type="tel" value="'+bEsc(s.phone2||'')+'" onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'phone2\',this.value)"></td>'+
+        '<td><input type="text" class="fee" inputmode="decimal" value="'+bNum(s.fee)+'" onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'fee\',this.value)"></td>'+
+        '<td><select onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'type\',this.value)"><option value="iskuul"'+(s.type==='xadaano'?'':' selected')+'>🏫 Iskuul</option><option value="xadaano"'+(s.type==='xadaano'?' selected':'')+'>👶 Xadaano</option></select></td>'+
+        '<td><button class="btn-danger btn-sm" onclick="basasDeleteStudent(\''+id+'\',\''+s.id+'\')">🗑️</button></td>'+
+        '</tr>').join('');
+      const addRow = ro ? '' :
+        '<tr>'+
+        '<td><input type="text" id="bs-name-'+id+'" list="basas-students-dl" placeholder="Magaca ardayga" oninput="basasPrefill(\''+id+'\')"></td>'+
+        '<td><input type="tel" id="bs-p1-'+id+'" placeholder="Tel 1"></td>'+
+        '<td><input type="tel" id="bs-p2-'+id+'" placeholder="Tel 2"></td>'+
+        '<td><input type="text" class="fee" inputmode="decimal" id="bs-fee-'+id+'" placeholder="0"></td>'+
+        '<td><select id="bs-type-'+id+'"><option value="iskuul">🏫 Iskuul</option><option value="xadaano">👶 Xadaano</option></select></td>'+
+        '<td><button class="btn-primary btn-sm" onclick="basasAddStudent(\''+id+'\')">➕</button></td>'+
+        '</tr>';
+      body =
+        '<div class="bus-tbl-wrap"><table class="bus-tbl"><thead><tr><th>Arday</th><th>Tel 1</th><th>Tel 2</th><th>Lacag</th><th>Nooca</th>'+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
+        (rows || '<tr><td colspan="6" class="muted">Arday lama darin.</td></tr>')+ addRow +
+        '</tbody></table></div>';
+    }
+    return '<div class="bus-card">'+
+      '<div class="bus-head" onclick="basasToggle(\''+id+'\')">'+
+        '<div><div class="bus-name">🚌 '+bEsc((d.name||'').toUpperCase())+'</div>'+
+        '<div class="bus-tel">📞 '+bEsc(d.phone||'telefoon ma jiro')+(ro&&d.sheet?' · sheet: '+bEsc(d.sheet):'')+'</div></div>'+
+        '<div class="bus-sum">🏫 $'+n.tI+' &nbsp; 👶 $'+n.tX+' &nbsp; 💰 <b>$'+bNum(n.tI+n.tX)+'</b> &nbsp; ('+total+' arday, 🎁 '+n.lF.length+' bilaash) '+(open?'▲':'▼')+'</div>'+
+      '</div>'+
+      '<div class="bus-btns">'+
+        '<button class="btn-whatsapp btn-sm" onclick="basasSendXisaab(\''+id+'\')">📤 Xisaab → Darawal</button>'+
+        '<button class="btn-whatsapp btn-sm" onclick="basasSendTel(\''+id+'\')">📞 Taleefonno → Darawal</button>'+
+        '<button class="btn-whatsapp btn-sm" onclick="basasSendXisaabKoox(\''+id+'\')">📤 Xisaab → Koox</button>'+
+        (ro ? '' :
+        '<button class="btn-ghost btn-sm" onclick="basasEditDriver(\''+id+'\')">✏️ Beddel</button>'+
+        '<button class="btn-danger btn-sm" onclick="basasDeleteDriver(\''+id+'\')">🗑️ Tirtir</button>')+
+      '</div>'+ body +
+    '</div>';
+  }).join('');
+}
+
+// ---------- Google Sheet (live, via Apps Script Web App) ----------
+const basasCfgRef = firebase.database().ref('ardaydaHoosaysa/basasConfig');
+let BASAS_CFG = {};
+let BASAS_FB = {};
+let BASAS_SHEET = null;
+let BASAS_LOADING = false;
+function basasIsSheet(){ return !!(BASAS_CFG.sheetUrl && BASAS_SHEET); }
+function basasApply(){
+  BASAS = basasIsSheet() ? BASAS_SHEET : BASAS_FB;
+  const tab = document.getElementById('tab-basas');
+  if(tab && !tab.classList.contains('hidden')){
+    const ae = document.activeElement;
+    const typing = ae && ae.closest && ae.closest('#basas-list') && /INPUT|SELECT|TEXTAREA/.test(ae.tagName);
+    if(!typing) renderBasas();
+  }
+}
+function basasStatus(t){ const el=document.getElementById('basas-sheet-status'); if(el) el.textContent=t; }
+function basasLoadSheet(){
+  const url = BASAS_CFG.sheetUrl;
+  if(!url){ basasStatus(''); return; }
+  if(BASAS_LOADING) return;
+  BASAS_LOADING = true;
+  basasStatus('⏳ Sheet-ka waa la akhrinayaa...');
+  const cb = 'basasCb'+Date.now();
+  const s = document.createElement('script');
+  let t = null;
+  const done = ()=>{ BASAS_LOADING=false; try{ delete window[cb]; }catch(e){ window[cb]=undefined; } if(s.parentNode) s.parentNode.removeChild(s); clearTimeout(t); };
+  t = setTimeout(()=>{ done(); basasStatus('❌ Waqtigii waa dhamaaday. Hubi in Web App-ku yahay "Anyone" iyo in link-gu sax yahay.'); }, 25000);
+  window[cb] = function(res){
+    done();
+    if(!res || res.error){ basasStatus('❌ Khalad: '+((res && res.error)||'jawaab madhan')); return; }
+    const obj = {};
+    (res.drivers||[]).forEach((dr,i)=>{
+      const students = {};
+      (dr.students||[]).forEach((st,j)=>{ students['s'+j] = {name:st.name, phone1:st.phone1, phone2:st.phone2, fee:Number(st.fee)||0, type:st.type==='xadaano'?'xadaano':'iskuul', createdAt:j}; });
+      obj['sh_'+i] = {name:dr.name, phone:dr.phone, sheet:dr.sheet, createdAt:i, students};
+    });
+    BASAS_SHEET = obj;
+    const d = new Date();
+    basasStatus('✅ Sheet-ka waa xiran yahay · la cusboonaysiiyay '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' · '+Object.keys(obj).length+' darawal');
+    basasApply();
+  };
+  s.onerror = ()=>{ done(); basasStatus('❌ Link-ga lama gaari karo.'); };
+  s.src = url + (url.indexOf('?')>-1?'&':'?') + 'callback='+cb+'&t='+Date.now();
+  document.head.appendChild(s);
+}
+function basasSaveUrl(){
+  const v = document.getElementById('basas-sheet-url').value.trim();
+  if(!/^https:\/\/script\.google\.com\/.+\/exec/.test(v)){ toast('⚠️ Link-gu waa inuu ahaadaa Web App URL (dhammaadka "/exec").'); return; }
+  basasCfgRef.child('sheetUrl').set(v).then(()=>toast('✅ Sheet-ka waa la xiray.')).catch(e=>toast('❌ '+e.message));
+}
+function basasDisconnect(){
+  if(!confirm('Ma jooji rabtaa isku-xirka sheet-ka? Xogtii gacanta lagu galiyay ayaa soo noqonaysa.')) return;
+  basasCfgRef.child('sheetUrl').remove().then(()=>{ BASAS_SHEET=null; basasStatus(''); toast('Isku-xirka waa la joojiyay.'); });
+}
+basasCfgRef.on('value', snap=>{
+  const prev = BASAS_CFG.sheetUrl;
+  BASAS_CFG = snap.val() || {};
+  if(prev !== BASAS_CFG.sheetUrl) BASAS_SHEET = null;
+  const inp = document.getElementById('basas-sheet-url');
+  if(inp && document.activeElement!==inp) inp.value = BASAS_CFG.sheetUrl || '';
+  basasApply();
+  if(BASAS_CFG.sheetUrl) basasLoadSheet();
+}, err=>console.error('basasConfig listener error:', err));
+// Is-cusboonaysiin: 45 ilbiriqsi kasta marka tab-ku furan yahay
+setInterval(()=>{ const tab=document.getElementById('tab-basas'); if(tab && !tab.classList.contains('hidden') && BASAS_CFG.sheetUrl && !document.hidden) basasLoadSheet(); }, 45000);
 </script>
 </body>
 </html>
