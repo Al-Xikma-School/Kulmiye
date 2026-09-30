@@ -271,6 +271,30 @@
   .book-card .book-title{font-weight:700;font-size:1rem;}
   .book-card .book-subtitle{font-size:0.8rem;color:#7a7364;}
 
+  .book-card.pinned{border-left-color:#43a047;background:#f4fbf1;}
+  .book-card .book-badge{display:inline-block;font-size:0.68rem;font-weight:800;background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;margin-left:6px;}
+  .fa-grid{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;}
+  .fa-let{background:#fff;border:2px solid #2b1d0e;border-radius:10px;min-width:44px;text-align:center;padding:6px 10px;font-size:1.25rem;font-weight:800;color:#2b1d0e;}
+  .fa-vow{font-size:0.95rem;color:#7a7364;margin:2px 0 6px;}
+  .fa-note{background:#fff8e1;border:1px dashed #d9c9a0;border-radius:8px;padding:6px 10px;font-size:0.85rem;margin-top:6px;}
+  .fa-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#2b1d0e;color:#fff3cf;font-weight:800;margin-right:8px;}
+  .fa-check li{margin:5px 0;}
+  .book-edit-form label{display:block;text-align:left;font-size:0.75rem;font-weight:800;text-transform:uppercase;color:#4a5b45;margin-top:10px;}
+  .book-edit-form input,.book-edit-form select{width:100%;}
+  .fmt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}
+  .fmt-chip{border:1.5px solid #d9c9a0;background:#fff;color:var(--ink);border-radius:18px;padding:5px 12px;font-size:0.82rem;font-weight:700;cursor:pointer;}
+  .fmt-chip.on{background:#2b1d0e;color:#fff3cf;border-color:#2b1d0e;}
+  .fmt-card{background:#fffdf5;border:1px solid #e4d9bd;border-radius:12px;padding:12px;margin-bottom:14px;}
+  .fmt-card h4{margin:0 0 4px;font-size:1rem;}
+  .fmt-sub{font-size:0.82rem;color:#7a7364;margin-bottom:8px;}
+  .fmt-tbl{width:100%;border-collapse:collapse;font-size:0.88rem;}
+  .fmt-tbl th{text-align:left;font-size:0.72rem;text-transform:uppercase;color:#7a7364;border-bottom:1.5px solid #d9c9a0;padding:4px 6px;}
+  .fmt-tbl td{padding:6px;border-bottom:1px solid #eee3c8;vertical-align:top;}
+  .fmt-tbl td.n{width:26px;color:#7a7364;}
+  .fmt-tbl td.m{white-space:nowrap;font-weight:700;text-align:center;}
+  .fmt-tbl tfoot td{font-weight:800;border-top:2px solid #d9c9a0;border-bottom:none;}
+  .lvl{display:inline-block;font-size:0.7rem;font-weight:800;border-radius:10px;padding:1px 8px;white-space:nowrap;}
+  .lvl-k{background:#e3f2fd;color:#1565c0;} .lvl-u{background:#fff3e0;color:#e65100;} .lvl-a{background:#f3e5f5;color:#6a1b9a;}
   .book-content{ color:var(--ink); }
   .book-header{
     position:relative;overflow:hidden;
@@ -1951,6 +1975,8 @@ function seedBuiltinBooks(){
     const seed = {};
     if(!val.math_g2) seed.math_g2 = {icon:'🔢', title:'Manhajka Xisaabta', subtitle:'Qaybta Labaad · Fasalka 2aad', dept:'iskuul', kind:'builtin'};
     if(!val.eng_g2) seed.eng_g2 = {icon:'📘', title:'Buugga Ingiriisiga', subtitle:'Fasalka 2aad', dept:'iskuul', kind:'builtin'};
+    if(!val.exam_m1) seed.exam_m1 = {icon:'📝', title:'Qaabka Imtixaanka Bisha 1aad', subtitle:'Dhammaan fasallada iskuulka · qaab & darajooyin', dept:'iskuul', kind:'builtin', openToAll:true};
+    if(!val.farta_laatiin) seed.farta_laatiin = {icon:'✍️', title:'Qaacidooyinka Qurxinta Farta Laatiinka', subtitle:'Sida loo qoro shibanayaasha iyo shaqalada · tartanka far-qurxinta', dept:'iskuul', kind:'builtin', openToAll:true};
     if(Object.keys(seed).length) booksLibRef.update(seed);
   });
 }
@@ -1962,6 +1988,8 @@ function getVisibleBooks(){
 function renderBookContent(book){
   if(book.id==='math_g2') return renderMathBookG2();
   if(book.id==='eng_g2') return renderEnglishBookG2();
+  if(book.id==='exam_m1') return renderExamFormatM1(book);
+  if(book.id==='farta_laatiin') return renderFartaLaatiin(book);
   return renderUploadedBookViewer(book);
 }
 function renderUploadedBookViewer(book){
@@ -2054,6 +2082,117 @@ function renderEnglishBookG2(){
       <p class="muted">25 Ficil oo ah 3 Xaraf</p>
       <div class="word-grid">${verbs3.map(wordCell).join('')}</div>
     </div>`;
+}
+
+// ---------- Qaabka Imtixaanka Bisha 1aad ----------
+const EXAM_FMT_M1 = [
+  {tags:['1aad','L1'], title:'Fasalada 1aad iyo Level One', subj:'Tarbiyo · Carabi', rows:[
+    ['Sax iyo khalad',5,'k'],['Gooba gali',5,'u'],['Isku aadi',5,'u'],['Buuxi meelaha banaan',5,'k']]},
+  {tags:['1aad','L1'], title:'Fasalada 1aad iyo Level One', subj:'Soomaali · Xisaab', rows:[
+    ['Yeeris',4,''],['Sax iyo khalad',4,'k'],['Gooba gali',4,'u'],['Isku aadi',4,'u'],['Buuxi meelaha banaan',4,'k']]},
+  {tags:['2aad'], title:'Fasalada 2aad', subj:'Soomaali · Xisaab', rows:[
+    ['Yeeris',3,''],['Sax iyo khalad',4,'k'],['Gooba gali',3,'u'],['Isku aadi',4,'u'],['Buuxi meelaha banaan',3,'k'],["Su'aalo iyo jawaabo",3,'k']]},
+  {tags:['2aad'], title:'Fasalada 2aad', subj:'Tarbiyo · Culuum · Carabi', rows:[
+    ['Sax iyo khalad',5,'k'],['Gooba gali',4,'u'],['Isku aadi',4,'u'],['Buuxi meelaha banaan',4,'k'],["Su'aalo iyo jawaabo",3,'k']]},
+  {tags:['3aad','4aad','L2'], title:'Fasalada 3aad, 4aad iyo Level Two', subj:'Tarbiyo · Culuum', rows:[
+    ['Sax iyo khalad',5,'k'],['Gooba gali',4,'u'],['Isku aadi',4,'u'],['Buuxi meelaha banaan',4,'k'],["Su'aalo iyo jawaabo",3,'k']]},
+  {tags:['3aad','4aad','L2'], title:'Fasalada 3aad, 4aad iyo Level Two', subj:'Cilmi Bulsho', rows:[
+    ['Sax iyo khalad',5,'k'],['Gooba gali',4,'u'],['Isku aadi',4,'u'],['Buuxi meelaha banaan',4,'k'],["Su'aalo iyo jawaabo",3,'k']]},
+  {tags:['3aad','4aad','5aad','L2'], title:'Fasalada 3aad, 4aad, 5aad iyo Level Two', subj:'Soomaali · Carabi · English', rows:[
+    ['Yeeris',2,'a'],['Sax iyo khalad',3,'k'],['Gooba gali',3,'u'],['Isku aadi',4,'u'],['Buuxi meelaha banaan',3,'k'],['Keen ereyadan micnahooda',3,''],["Su'aalo iyo jawaabo",2,'k']]},
+  {tags:['3aad'], title:'Fasalka 3aad', subj:'Xisaab', rows:[
+    ['Yeeris',3,''],['Kudar halqaadasho leh',3,''],['Kajar halqaadasho leh',3,''],['Isku aadi',4,''],['Xali masa\'ishan (solve problem)',3,''],['Kudhufo halqaadasho lahayn',4,'']]},
+  {tags:['4aad'], title:'Fasalka 4aad', subj:'Xisaab', rows:[
+    ['Yeeris',3,''],['Kudar halqaadasho leh',3,''],['Kajar halqaadasho leh',3,''],['Kudhufo halqaadasho lahayn / leh',4,''],['Xali masa\'ishan (solve problem)',3,''],['Buuxi meelaha banaan',4,'']]}
+];
+const EXAM_FMT_LVL = {k:['Knowledge','lvl-k'], u:['Understanding','lvl-u'], a:['Apply','lvl-a']};
+function renderExamFormatM1(book){
+  const chips = [['all','Dhammaan'],['1aad','Fasalka 1aad'],['2aad','Fasalka 2aad'],['3aad','Fasalka 3aad'],['4aad','Fasalka 4aad'],['5aad','Fasalka 5aad'],['L1','Level One'],['L2','Level Two']];
+  const cards = EXAM_FMT_M1.map(g=>{
+    const total = g.rows.reduce((a,r)=>a+r[1],0);
+    return `<div class="fmt-card" data-tags="${g.tags.join(' ')}">
+      <h4>${escapeHtml(g.title)}</h4>
+      <div class="fmt-sub">📚 Maadooyinka: <b>${escapeHtml(g.subj)}</b></div>
+      <div style="overflow-x:auto;"><table class="fmt-tbl"><thead><tr><th>#</th><th>Nooca su'aasha</th><th style="text-align:center;">Su'aalaha × darajo</th><th>Heerka</th></tr></thead><tbody>
+      ${g.rows.map((r,i)=>`<tr><td class="n">${i+1}</td><td>${escapeHtml(r[0])}</td><td class="m">${r[1]}×1 = ${r[1]}</td><td>${r[2]?`<span class="lvl ${EXAM_FMT_LVL[r[2]][1]}">${EXAM_FMT_LVL[r[2]][0]}</span>`:'<span class="muted">—</span>'}</td></tr>`).join('')}
+      </tbody><tfoot><tr><td></td><td>Wadarta guud</td><td class="m">${total} su'aalood = ${total} darajo</td><td></td></tr></tfoot></table></div>
+    </div>`;
+  }).join('');
+  return `<div class="book-content">
+    <div class="book-header">
+      <span class="book-header-icon">📝</span>
+      <h2>${escapeHtml((book && book.title) || 'Qaabka Imtixaanka Bisha 1aad')}</h2>
+      <p class="muted">Qaabka lagu diyaarinayo imtixaanka · Al-Xikma School</p>
+    </div>
+    <div class="fmt-chips">${chips.map(c=>`<button type="button" class="fmt-chip${c[0]==='all'?' on':''}" data-f="${c[0]}" onclick="examFmtFilter('${c[0]}')">${c[1]}</button>`).join('')}</div>
+    <p class="muted" style="font-size:0.8rem;"><span class="lvl lvl-k">Knowledge</span> aqoon · <span class="lvl lvl-u">Understanding</span> faham · <span class="lvl lvl-a">Apply</span> codsi. Su'aal kasta = 1 darajo.</p>
+    <div id="fmt-cards">${cards}</div>
+  </div>`;
+}
+function examFmtFilter(f){
+  document.querySelectorAll('.fmt-chip').forEach(b=>b.classList.toggle('on', b.getAttribute('data-f')===f));
+  document.querySelectorAll('#fmt-cards .fmt-card').forEach(c=>{
+    const t=(c.getAttribute('data-tags')||'').split(' ');
+    c.style.display = (f==='all' || t.includes(f)) ? '' : 'none';
+  });
+}
+
+// ---------- Qaacidooyinka qurxinta farta laatiinka ----------
+function renderFartaLaatiin(book){
+  const V = 'a e i o u';
+  const cats = [
+    {n:1, title:'Shibanayaasha shaqalka laaleeg (dherer ahaan)', letters:['x','r','s','c','m','n','w'], count:7,
+     rule:'Sadarka sare ma gaaraan, sadarkooda hoose kana ma dagaan.'},
+    {n:2, title:'Shibanayaasha shaqalka inta salka ah ka leeg', letters:['b','kh','d','sh','dh','f','k','l','h'], count:9,
+     rule:'Sadarka sare way gaaraan.',
+     note:'Fiiro gaar ah: xarafka <b>(sh)</b> — qaybtiisa hore sadarka ma gaarto, waxayna leedahay shaqalada.'},
+    {n:3, title:'Shibanayaasha shaqalka laaleeg inta madaxa oo kaliya', letters:['j','g','q','y'], count:4,
+     rule:'Sadarka hoose way gaaraan.',
+     note:'Waxaa la mid ah xarafka <b>(p)</b> ee Ingiriisiga.'},
+    {n:4, title:'Shibanayaasha shaqalka ka leeg inta dhexda ah', letters:['t'], count:1,
+     rule:'Sadarka sare ma gaaraan.'}
+  ];
+  const judged = ['Sadar saarida','Isbayska weeraha','Shibanayaasha shaqalka laaleeg',
+    'Shibanayaasha shaqalka madaxa ka leeg, sadarka hoosena gaara',
+    'Shibanayaasha shaqalka dabada ka leeg, sadarka sarena gaara',
+    'Shibanayaasha shaqalka dabada ka leeg, sadarka sarena aan gaarin (t)',
+    "Isbays la'aanta kelmadaha",
+    'Simida shaqalka iyo shibanayaasha meesha loogu talagalay oo dhexda ah',
+    'In dhexdhexaad shaqalada lagu ilaalinayo',
+    'Xarafka wayn waa in labada sadar uu gaaro'];
+  return `<div class="book-content">
+    <div class="book-header">
+      <span class="book-header-icon">✍️</span>
+      <h2>${escapeHtml((book && book.title) || 'Qaacidooyinka Qurxinta Farta Laatiinka')}</h2>
+      <p class="muted">Dugsiga Hoose Dhexe Sare Ee Al-Xikma · Garowe – Puntland – Somalia</p>
+      <p class="muted">Taariikh: 9/2/2026</p>
+    </div>
+
+    <div class="book-section-title accent-yellow"><span class="book-section-emoji">🔤</span> Afarta qaybood ee shibanayaasha</div>
+    <p class="muted">Shibanayaasha qaybta yar-yar ee badanaa la isticmaalo waxay u qaybsamaan <b>afar qaybood</b>:</p>
+
+    ${cats.map(c=>`<div class="fmt-card">
+      <h4><span class="fa-num">${c.n}</span>${c.title}</h4>
+      <div class="fmt-sub">${c.count} xaraf${c.count>1?'':' (1)'} · ${escapeHtml(c.rule)}</div>
+      <div class="fa-grid">${c.letters.map(l=>`<span class="fa-let">${l}</span>`).join('')}</div>
+      <div class="fa-vow">= ${V}</div>
+      ${c.note?`<div class="fa-note">${c.note}</div>`:''}
+    </div>`).join('')}
+
+    <div class="book-section-title accent-green" style="margin-top:20px;"><span class="book-section-emoji">📌</span> Xusuusin muhiim ah</div>
+    <div class="fmt-card">
+      <ul class="fa-check" style="margin:0;padding-left:20px;">
+        <li>Shibanayaasha iyo shaqaladu marka ay yihiin <b>kuwa waawayn</b>, dhammaantood waa inay gaaraan <b>labada sadar</b>, sadarkana ma ka dagaan.</li>
+        <li>Iyaamaha hore, inta ardaydu kala fahmayaan, macalimiintu <b>mastarad</b> ha isticmaalaan.</li>
+      </ul>
+      <p style="text-align:center;margin:10px 0 0;">وبالله التوفيق</p>
+    </div>
+
+    <div class="book-section-title accent-red" style="margin-top:20px;"><span class="book-section-emoji">🏆</span> Waxyaabaha tartanka lagu qiimaynayo</div>
+    <div class="fmt-card">
+      <ol class="fa-check" style="margin:0;padding-left:22px;">${judged.map(j=>`<li>${escapeHtml(j)}</li>`).join('')}</ol>
+    </div>
+  </div>`;
 }
 let currentInspection = null; // {teacherId, teacherName, m1, m2}
 
@@ -2324,16 +2463,16 @@ function renderTeacherBooksList(){
   const el = document.getElementById('teacher-books-grid');
   if(!el || !currentTeacher) return;
   const access = TEACHER_BOOKS[currentTeacher.id] || {};
-  const allowed = getVisibleBooks().filter(b=>access[b.id]);
+  const allowed = getVisibleBooks().filter(b=>access[b.id] || b.openToAll).sort((a,b)=>(b.openToAll?1:0)-(a.openToAll?1:0) || String(a.title).localeCompare(String(b.title)));
   if(allowed.length===0){
     el.innerHTML = '<p class="muted">Weli buug lagama furin akoonkaaga. La xiriir maamulka.</p>';
     return;
   }
   el.innerHTML = allowed.map(b=>`
-    <div class="book-card" onclick="openTeacherBook('${b.id}')">
+    <div class="book-card${b.openToAll?' pinned':''}" onclick="openTeacherBook('${b.id}')">
       <span class="book-icon">${b.icon || '📄'}</span>
       <div>
-        <div class="book-title">${escapeHtml(b.title)}</div>
+        <div class="book-title">${escapeHtml(b.title)}${b.openToAll?'<span class="book-badge">Dhammaan macalimiinta</span>':''}</div>
         <div class="book-subtitle">${escapeHtml(b.subtitle || '')}</div>
       </div>
     </div>`).join('');
@@ -5341,8 +5480,34 @@ function renderBooksSettingsList(){
         <div class="student-name">${b.icon || '📄'} ${escapeHtml(b.title)}</div>
         <div class="student-meta">${b.dept==='iskuul' ? '🏫 Qaybta Iskuulka' : '📖 Qaybta Qur\u2019aanka'}${b.kind==='builtin' ? ' · Buug Aasaasi ah' : ''}</div>
       </div>
+      <button class="btn-primary btn-sm" onclick="editBook('${id}')" style="margin-right:6px;">✏️ Wax ka beddel</button>
       <button class="btn-danger btn-sm" onclick="deleteBook('${id}')">🗑️ Tirtir</button>
     </div>`).join('');
+}
+function editBook(id){
+  const b = BOOKS_LIBRARY[id]; if(!b) return;
+  const ov = document.createElement('div'); ov.className = 'ef-modal';
+  ov.innerHTML = '<div class="ef-modal-box book-edit-form" style="text-align:left;max-height:90vh;overflow:auto;">'+
+    '<p style="text-align:center;"><b>✏️ Wax ka beddel buugga</b></p>'+
+    '<label>Magaca buugga</label><input type="text" id="be-title" value="'+escapeHtml(b.title||'').replace(/"/g,'&quot;')+'">'+
+    '<label>Cinwaan yar (subtitle)</label><input type="text" id="be-sub" value="'+escapeHtml(b.subtitle||'').replace(/"/g,'&quot;')+'">'+
+    '<label>Icon (emoji)</label><input type="text" id="be-icon" maxlength="4" value="'+escapeHtml(b.icon||'').replace(/"/g,'&quot;')+'">'+
+    '<label>Qaybta</label><select id="be-dept"><option value="iskuul"'+(b.dept==='iskuul'?' selected':'')+'>🏫 Iskuulka</option><option value="quraan"'+(b.dept==='quraan'?' selected':'')+'>📖 Qur\u2019aanka</option></select>'+
+    '<label>Cidda arki karta</label><select id="be-open"><option value="0"'+(!b.openToAll?' selected':'')+'>Macalimiinta aan u furo oo keliya</option><option value="1"'+(b.openToAll?' selected':'')+'>Dhammaan macalimiinta qaybtan</option></select>'+
+    '<div class="ef-modal-btns" style="margin-top:14px;"><button class="btn-primary btn-sm" id="be-save" type="button">💾 Kaydi</button><button class="btn-ghost btn-sm" id="be-cancel" type="button">Ka noqo</button></div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#be-cancel').onclick = ()=>ov.remove();
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#be-save').onclick = ()=>{
+    const title = ov.querySelector('#be-title').value.trim();
+    if(!title){ toast('Fadlan geli magaca buugga.'); return; }
+    booksLibRef.child(id).update({
+      title, subtitle: ov.querySelector('#be-sub').value.trim(),
+      icon: ov.querySelector('#be-icon').value.trim() || '📄',
+      dept: ov.querySelector('#be-dept').value,
+      openToAll: ov.querySelector('#be-open').value==='1'
+    }).then(()=>{ toast('✅ Buugga waa la cusboonaysiiyay.'); ov.remove(); }).catch(e=>toast('❌ '+e.message));
+  };
 }
 function deleteBook(id){
   if(!confirm('Ma hubtaa inaad tirtirto buuggan? Macallimiinta loo furay mar dambe ma heli doonaan.')) return;
@@ -5761,7 +5926,8 @@ function examfeeMount(p){
     '</div>'+
     '<div class="ef-sum" id="ef-'+p+'-sum"></div>'+
     '<div id="ef-'+p+'-rank"></div>'+
-    '<div class="ef-tbl-wrap" id="ef-'+p+'-tbl"></div>';
+    '<div class="ef-tbl-wrap" id="ef-'+p+'-tbl"></div>'+
+    (p==='t'?'<div style="margin:14px 0 4px;text-align:center;"><button class="btn-whatsapp" type="button" onclick="examfeeBulk()">📤 U dir fariinta dhammaan aan bixin</button></div>':'');
 }
 function examfeeFillFilters(p){
   const fSel = document.getElementById('ef-'+p+'-fasal'), sSel = document.getElementById('ef-'+p+'-section');
@@ -5962,6 +6128,67 @@ function examfeePayerSearch(p){
 }
 
 function efWaLink(s, g, tel){ return 'https://wa.me/'+String(tel).replace(/^\+/,'')+'?text='+encodeURIComponent(efParentMsg(s,g,tel)); }
+function efSentGet(month){ try{ return new Set(JSON.parse(localStorage.getItem('efSent:'+month)||'[]')); }catch(e){ return new Set(); } }
+function efIsSent(sent, tel){ for(const k of sent){ if(efTelMatch(k, tel)) return true; } return false; }
+function efSentAdd(month, key){ const st = efSentGet(month); st.add(key); try{ localStorage.setItem('efSent:'+month, JSON.stringify([...st])); }catch(e){} }
+function examfeeBulk(){
+  const month = efMonthSel();
+  const fees = EXAM_FEES[month] || {};
+  const unpaid = examfeeAllowed('t').filter(s=>!(fees[s.id] && Number(fees[s.id].amount)>0)).sort(efByName);
+  if(!unpaid.length){ toast('🎉 Dhammaan ardaydaadii way bixiyeen.'); return; }
+  // Isku ururi ardayda lambar waalid isku mid ah (walaalaha) -> hal fariin
+  const groups = [];
+  const noPhone = [];
+  unpaid.forEach(s=>{
+    const tels = [efCleanTel(s.phone1), efCleanTel(s.phone2)].filter(Boolean);
+    if(!tels.length){ noPhone.push(s); return; }
+    tels.forEach(t=>{
+      let gr = groups.find(x=>efTelMatch(x.tel,t));
+      if(!gr){ gr={tel:t, key:String(t).replace(/[^0-9]/g,''), kids:[]}; groups.push(gr); }
+      if(!gr.kids.some(k=>k.id===s.id)) gr.kids.push(s);
+    });
+  });
+  groups.forEach(gr=>{
+    gr.kids.sort(efByName);
+    const first = gr.kids.find(k=>efGrantFor(k));
+    gr.s = first || gr.kids[0]; gr.g = first ? efGrantFor(first) : null;
+    gr.ok = !!(gr.g && gr.g.payAmount && gr.g.payTel && gr.g.payName);
+  });
+  groups.sort((a,b)=>efByName(a.kids[0],b.kids[0]));
+  const sent = efSentGet(month);
+  const ov = document.createElement('div'); ov.className='ef-modal';
+  const rowHtml = r=>{
+    const done = efIsSent(sent, r.tel);
+    return '<div class="ef-par" data-bsid="'+r.key+'" style="'+(done?'opacity:.55;':'')+'">'+
+      '<div class="ef-par-h">'+r.kids.map(k=>escapeHtml(k.name||'')).join(' + ')+' <span class="ef-bsent">'+(done?'✅ La diray':'')+'</span></div>'+
+      '<div class="muted" style="font-size:0.8rem;margin-bottom:6px;">📱 <span dir="ltr">'+escapeHtml(r.tel)+'</span> · '+r.kids.length+' arday</div>'+
+      (r.ok ? '<div class="ef-modal-btns"><a href="'+efWaLink(r.s,r.g,r.tel)+'" target="_blank" rel="noopener" data-bt="1" data-sid="'+r.key+'"><button class="btn-whatsapp btn-sm" type="button">💬 Dir fariinta</button></a></div>'
+            : '<div class="muted" style="font-size:0.82rem;">⚠️ Maamulku xogta lacag-bixinta ma gelin.</div>')+
+    '</div>';
+  };
+  ov.innerHTML = '<div class="ef-modal-box" style="max-height:88vh;overflow:auto;width:min(94vw,460px);">'+
+    '<p><b>📤 Dir fariinta waalidka ardayda aan bixin</b><br><span style="font-size:0.82rem;">Ardayda walaalaha ah (isku lambar) waxaa loo diraa <b>hal fariin</b> oo lacagta la isku darsaday. Riix 💬, WhatsApp ayaa furmaya, riix "Send" oo ku noqo halkan.</span></p>'+
+    '<div class="ef-modal-btns" style="margin-bottom:10px;"><button class="btn-primary btn-sm" id="ef-bnext" type="button">▶️ Xiga</button></div>'+
+    '<div id="ef-blist">'+groups.map(rowHtml).join('')+
+    (noPhone.length?'<div class="muted" style="font-size:0.8rem;margin-top:6px;">⚠️ Taleefon la\'aan: '+noPhone.map(k=>escapeHtml(k.name||'')).join('، ')+'</div>':'')+'</div>'+
+    '<div class="ef-modal-btns" style="margin-top:8px;"><button class="btn-ghost" id="ef-bclose" type="button">Xir</button></div></div>';
+  document.body.appendChild(ov);
+  const mark = key=>{
+    efSentAdd(month, key); sent.add(key);
+    const card = ov.querySelector('[data-bsid="'+key+'"]');
+    if(card){ card.style.opacity='.55'; const b=card.querySelector('.ef-bsent'); if(b) b.textContent='✅ La diray'; }
+  };
+  ov.querySelectorAll('a[data-bt]').forEach(a=>a.addEventListener('click',()=>mark(a.getAttribute('data-sid'))));
+  ov.querySelector('#ef-bnext').onclick = ()=>{
+    const r = groups.find(x=>x.ok && !efIsSent(sent, x.tel));
+    if(!r){ toast('✅ Dhammaan waa la direy.'); return; }
+    mark(r.key);
+    window.open(efWaLink(r.s, r.g, r.tel), '_blank');
+  };
+  ov.querySelector('#ef-bclose').onclick = ()=>ov.remove();
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+}
+
 
 // ---------- Wac / WhatsApp waalidka (lacag bixinta) ----------
 function efGrantFor(s){
@@ -6061,7 +6288,7 @@ function examfeeContact(sid){
     '<div class="ef-par"><div class="ef-par-h">'+label+': <span dir="ltr">'+escapeHtml(t)+'</span></div>'+
     '<div class="ef-modal-btns">'+
       '<a href="tel:'+t.replace(/^\+/,'')+'"><button class="btn-primary btn-sm" type="button">📞 Wicid</button></a>'+
-      (hasPay ? '<a href="'+efWaLink(s,g,t)+'" target="_blank" rel="noopener"><button class="btn-whatsapp btn-sm" type="button">💬 WhatsApp</button></a>'
+      (hasPay ? '<a href="'+efWaLink(s,g,t)+'" target="_blank" rel="noopener" onclick="efSentAdd(efMonthSel(),\''+t.replace(/[^0-9]/g,'')+'\')"><button class="btn-whatsapp btn-sm" type="button">💬 WhatsApp</button></a>'
               : '<button class="btn-whatsapp btn-sm" type="button" onclick="toast(\'Maamulku weli ma gelin taleefonka iyo xadka lacagta.\')">💬 WhatsApp</button>')+
     '</div></div>';
   const ov = document.createElement('div'); ov.className = 'ef-modal';
