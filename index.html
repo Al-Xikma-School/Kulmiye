@@ -280,7 +280,12 @@
   .fa-num{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#2b1d0e;color:#fff3cf;font-weight:800;margin-right:8px;}
   .fa-check li{margin:5px 0;}
   .book-edit-form label{display:block;text-align:left;font-size:0.75rem;font-weight:800;text-transform:uppercase;color:#4a5b45;margin-top:10px;}
-  .book-edit-form input,.book-edit-form select{width:100%;}
+  .book-edit-form input:not([type=checkbox]),.book-edit-form select{width:100%;}
+  .be-tlist{border:1px solid #e4d9bd;border-radius:10px;max-height:210px;overflow:auto;padding:4px 8px;margin-top:6px;background:#fffdf5;}
+  .be-tlist label{display:flex;align-items:center;gap:10px;text-transform:none;font-size:0.92rem;font-weight:600;color:#2b1d0e;margin:0;padding:8px 2px;border-bottom:1px solid #f0e8d0;cursor:pointer;}
+  .be-tlist label:last-child{border-bottom:none;}
+  .be-tlist input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;}
+  .be-tlist.off{opacity:.45;pointer-events:none;}
   .fmt-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;}
   .fmt-chip{border:1.5px solid #d9c9a0;background:#fff;color:var(--ink);border-radius:18px;padding:5px 12px;font-size:0.82rem;font-weight:700;cursor:pointer;}
   .fmt-chip.on{background:#2b1d0e;color:#fff3cf;border-color:#2b1d0e;}
@@ -1023,7 +1028,7 @@
     <select id="teacher-main-select" class="nav-select" onchange="switchTeacherTab(this.value)">
       <option value="" disabled selected>— Dooro qaybta —</option>
       <option value="reports">📋 Warbixinta Ardayda</option>
-      <option value="inspect">🔎 Taftiishkayga</option>
+      <option id="opt-t-inspect" value="inspect">🔎 Taftiishkayga</option>
       <option value="books">📚 Buugta</option>
       <option id="opt-t-farta" value="farta" hidden>✍️ Tartanka Farta Laatiinka</option>
       <option id="opt-t-examfee" value="examfee" hidden>💵 Lacagta Imtixaanka</option>
@@ -1589,6 +1594,14 @@
         <p class="muted">Macalin u fur fasal (ama section) si uu lacagta imtixaanka ugu saxo ardayda. Hoose waxaad ka arki kartaa liiska guud, oo waad sixi kartaa lacag kasta.</p>
       </div>
       <div class="card">
+        <h3>📝 Magaca Imtixaanka</h3>
+        <p class="muted">Magacan wuxuu ku jiraa fariinta waalidka loo diro (tusaale: Imtixaanka Billaha 1aad).</p>
+        <div class="row" style="align-items:flex-end;">
+          <div style="flex:1;min-width:200px;"><input type="text" id="ef-exam-name" placeholder="Tusaale: Imtixaanka Billaha 1aad"></div>
+          <button class="btn-primary btn-sm" onclick="saveExamName()">💾 Kaydi</button>
+        </div>
+      </div>
+      <div class="card">
         <h3>🔑 U fur Fasal Macalin</h3>
         <div class="ef-filters">
           <div><label>Macalinka</label><select id="ef-grant-teacher"></select></div>
@@ -1688,6 +1701,16 @@
           </select>
           <button class="btn-primary btn-sm" onclick="addInspectionItem()">+ Ku dar Qodob</button>
         </div>
+      </div>
+
+      <div class="card">
+        <h3>🔎 Taftiishkayga — Furitaanka Macalimiinta</h3>
+        <p class="muted">Tick = macalinku wuu arkaa qaybta "Taftiishkayga". Qaad tick si aad uga xirto. Isbeddelku isla markiiba ayuu shaqeeyaa.</p>
+        <div class="row" style="margin-bottom:8px;">
+          <button class="btn-ghost btn-sm" onclick="setInspectAccessAll(true)">🔓 Dhammaan fur</button>
+          <button class="btn-ghost btn-sm" onclick="setInspectAccessAll(false)">🔒 Dhammaan xir</button>
+        </div>
+        <div id="inspect-access-list"></div>
       </div>
 
       <div class="card">
@@ -1802,7 +1825,7 @@ function applyFeatureConfigToAdminUI(){
       if(h2) h2.textContent = '✍️ ' + cfg.label + ' — Diiwaangelinta Dhibcaha';
     }
   });
-  applyFartaVisibility(); applyExamfeeVisibility();
+  applyFartaVisibility(); applyExamfeeVisibility(); applyInspectVisibility();
   if(document.getElementById('view-admin').classList.contains('hidden')) return; // only auto-switch while the admin panel is actually open
   const mainTabs = document.getElementById('admin-main-tabs');
   if(!mainTabs) return;
@@ -2231,7 +2254,7 @@ function batchKey(fasal, section, maadada){
 // ---------- Department selection ----------
 function selectDept(dept){
   stopInspectionListeners();
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('teacherFartaWa').off(); db.child('teacherFarta').off(); db.child('config/fartaCategories').off(); db.child('examFees').off(); db.child('examFeeAccess').off(); db.child('config/schoolLogo').off(); db.child('config/schoolLink').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('teacherFartaWa').off(); db.child('teacherFarta').off(); db.child('config/fartaCategories').off(); db.child('examFees').off(); db.child('examFeeAccess').off(); db.child('config/schoolLogo').off(); db.child('config/schoolLink').off(); db.child('config/examName').off(); db.child('teacherInspectAccess').off(); }
   CURRENT_DEPT = dept;
   db = firebase.database().ref('ardaydaHoosaysa/' + dept); // namespaced per department so Iskuulka & Quraanka never mix
   STUDENTS = {}; TEACHERS = {}; SUBMISSIONS = {}; QURAN_SUBMISSIONS = {}; QURAN_DAILY = {}; QURAN_PICKED = new Set(); QURAN_SKIPN = {}; QURAN_SUBCI_RANGE = {fs:0, fa:0, ts:0, ta:0}; QURAN_MODE = 'known'; QURAN_OPEN = new Set(); QORI_TUUR = {}; FARTA_LAATIINKA = {}; TEACHER_FARTA_WA = {}; TEACHER_FARTA = {}; EXAM_FEES = {}; EXAM_ACCESS = {}; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
@@ -2264,7 +2287,7 @@ function migrateLegacyIskuulData(){
 }
 function backToDeptSelect(){
   stopInspectionListeners();
-  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('teacherFartaWa').off(); db.child('teacherFarta').off(); db.child('config/fartaCategories').off(); db.child('examFees').off(); db.child('examFeeAccess').off(); db.child('config/schoolLogo').off(); db.child('config/schoolLink').off(); }
+  if(db){ db.child('students').off(); db.child('teachers').off(); db.child('submissions').off(); db.child('quranWeekly').off(); db.child('quranDaily').off(); db.child('qoriTuur').off(); db.child('fartaLaatiinka').off(); db.child('teacherFartaWa').off(); db.child('teacherFarta').off(); db.child('config/fartaCategories').off(); db.child('examFees').off(); db.child('examFeeAccess').off(); db.child('config/schoolLogo').off(); db.child('config/schoolLink').off(); db.child('config/examName').off(); db.child('teacherInspectAccess').off(); }
   db = null; CURRENT_DEPT = null; currentTeacher = null; currentBatch = null; currentQuranBatch = null;
   if(window.QoraalMobileApp) QoraalMobileApp.reset();
   showView('view-dept');
@@ -2292,9 +2315,11 @@ function attachFirebaseListeners(){
   db.child('teacherFarta').on('value', snap=>{
     TEACHER_FARTA = snap.val() || {};
     if(!document.getElementById('view-admin').classList.contains('hidden')) renderTeacherList();
-    applyFartaVisibility(); applyExamfeeVisibility();
+    applyFartaVisibility(); applyExamfeeVisibility(); applyInspectVisibility();
   });
   db.child('config/schoolLogo').on('value', snap=>{ SCHOOL_LOGO = snap.val() || ''; renderSchoolLogoPreview(); });
+  db.child('teacherInspectAccess').on('value', snap=>{ TEACHER_INSPECT = snap.val() || {}; applyInspectVisibility(); renderInspectAccessList(); });
+  db.child('config/examName').on('value', snap=>{ EXAM_NAME = snap.val() || ''; const el=document.getElementById('ef-exam-name'); if(el && document.activeElement!==el) el.value = EXAM_NAME; });
   db.child('config/schoolLink').on('value', snap=>{ SCHOOL_LINK = snap.val() || ''; const el=document.getElementById('school-link-input'); if(el && document.activeElement!==el) el.value = SCHOOL_LINK; });
   db.child('examFees').on('value', snap=>{ EXAM_FEES = snap.val() || {}; examfeeRefresh(); });
   db.child('examFeeAccess').on('value', snap=>{ EXAM_ACCESS = snap.val() || {}; applyExamfeeVisibility(); examfeeRefresh(); });
@@ -2348,7 +2373,7 @@ function teacherLogin(){
   populateFasalDropdown();
   document.getElementById('sel-report-type').value = (CURRENT_DEPT === 'quraan') ? 'quran' : 'hoosayn';
   onReportTypeChange();
-  applyFartaVisibility(); applyExamfeeVisibility();
+  applyFartaVisibility(); applyExamfeeVisibility(); applyInspectVisibility();
   showView('view-teacher-select');
   switchTeacherTab('');
 }
@@ -2971,7 +2996,7 @@ function switchAdminTab(tab){
   if(tab==='basas'){ renderBasas(); basasLoadSheet(); }
   if(tab==='examfee'){ examfeeFillGrant(); examfeeRender('a'); }
   if(tab==='meetings'){ if(window.QoraalMobileApp) QoraalMobileApp.init(); }
-  if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); const deptSel=document.getElementById('new-book-dept'); if(deptSel && CURRENT_DEPT) deptSel.value = CURRENT_DEPT; }
+  if(tab==='settings'){ renderInspectionItemsSettings(); renderBooksSettingsList(); renderInspectAccessList(); const deptSel=document.getElementById('new-book-dept'); if(deptSel && CURRENT_DEPT) deptSel.value = CURRENT_DEPT; }
 }
 
 // ---------- Dashboard: ranked flagged students ----------
@@ -3952,16 +3977,6 @@ function renderTeacherList(){
         </div>
         <button class="btn-ghost btn-sm" onclick="toggleEditTeacher('${id}')">✏️ Wax ka beddel</button>
         <button class="btn-danger btn-sm" onclick="deleteTeacher('${id}')">Tirtir</button>
-      </div>
-      <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">
-        <div class="student-meta" style="margin-bottom:6px;">📚 Buugaha loo furay:</div>
-        <div style="display:flex;flex-wrap:wrap;gap:14px;">
-          ${getVisibleBooks().length ? getVisibleBooks().map(b=>`
-            <label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;">
-              <input type="checkbox" ${(TEACHER_BOOKS[id] && TEACHER_BOOKS[id][b.id]) ? 'checked' : ''} onchange="toggleTeacherBook('${id}','${b.id}', this.checked)">
-              ${b.icon || '📄'} ${escapeHtml(b.title)}
-            </label>`).join('') : '<span class="muted">Weli buug looma soo gelin qaybtan.</span>'}
-        </div>
       </div>
       ${featureCfg(CURRENT_DEPT,'farta').enabled ? `
       <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #ddd;">
@@ -5484,6 +5499,32 @@ function renderBooksSettingsList(){
       <button class="btn-danger btn-sm" onclick="deleteBook('${id}')">🗑️ Tirtir</button>
     </div>`).join('');
 }
+
+// ---------- Taftiishkayga: furitaanka macalimiinta (Settings) ----------
+function applyInspectVisibility(){
+  const opt = document.getElementById('opt-t-inspect'); if(!opt) return;
+  const closed = !!(currentTeacher && TEACHER_INSPECT[currentTeacher.id]===false);
+  opt.hidden = closed;
+  if(closed){
+    const navSel = document.getElementById('teacher-main-select');
+    if(navSel && navSel.value==='inspect') switchTeacherTab('');
+  }
+}
+function renderInspectAccessList(){
+  const el = document.getElementById('inspect-access-list'); if(!el) return;
+  const entries = Object.entries(TEACHERS||{}).sort((a,c)=>String(a[1].name||'').localeCompare(String(c[1].name||''),undefined,{sensitivity:'base'}));
+  if(!entries.length){ el.innerHTML = '<p class="muted">Weli macalin lama darin.</p>'; return; }
+  el.innerHTML = '<div class="be-tlist" style="max-height:320px;">' + entries.map(([tid,t])=>
+    '<label><input type="checkbox" '+(TEACHER_INSPECT[tid]===false?'':'checked')+' onchange="setInspectAccess(\''+tid+'\', this.checked)"> '+escapeHtml(t.name||'')+'</label>').join('') + '</div>';
+}
+function setInspectAccess(tid, on){
+  const ref = db.child('teacherInspectAccess/'+tid);
+  (on ? ref.remove() : ref.set(false)).then(()=>toast(on?'🔓 Taftiishka waa loo furay macalinka.':'🔒 Taftiishka waa laga xiray macalinka.')).catch(e=>toast('❌ '+e.message));
+}
+function setInspectAccessAll(on){
+  const upd = {}; Object.keys(TEACHERS||{}).forEach(tid=>{ upd[tid] = on ? null : false; });
+  db.child('teacherInspectAccess').update(upd).then(()=>toast(on?'🔓 Dhammaan waa loo furay.':'🔒 Dhammaan waa laga xiray.'));
+}
 function editBook(id){
   const b = BOOKS_LIBRARY[id]; if(!b) return;
   const ov = document.createElement('div'); ov.className = 'ef-modal';
@@ -5494,10 +5535,19 @@ function editBook(id){
     '<label>Icon (emoji)</label><input type="text" id="be-icon" maxlength="4" value="'+escapeHtml(b.icon||'').replace(/"/g,'&quot;')+'">'+
     '<label>Qaybta</label><select id="be-dept"><option value="iskuul"'+(b.dept==='iskuul'?' selected':'')+'>🏫 Iskuulka</option><option value="quraan"'+(b.dept==='quraan'?' selected':'')+'>📖 Qur\u2019aanka</option></select>'+
     '<label>Cidda arki karta</label><select id="be-open"><option value="0"'+(!b.openToAll?' selected':'')+'>Macalimiinta aan u furo oo keliya</option><option value="1"'+(b.openToAll?' selected':'')+'>Dhammaan macalimiinta qaybtan</option></select>'+
+    '<label>👩‍🏫 Macalimiinta buugga loo furay <span style="text-transform:none;font-weight:400;color:#7a7364;">(tick = u fur · qaad tick = ka xir)</span></label>'+
+    '<div class="be-tlist" id="be-tlist">'+
+    (Object.entries(TEACHERS||{}).sort((a,c)=>String(a[1].name||'').localeCompare(String(c[1].name||''),undefined,{sensitivity:'base'})).map(([tid,t])=>
+      '<label><input type="checkbox" data-tid="'+tid+'"'+((TEACHER_BOOKS[tid] && TEACHER_BOOKS[tid][id])?' checked':'')+'> '+escapeHtml(t.name||'')+'</label>').join('') || '<span class="muted">Weli macalin lama darin.</span>')+
+    '</div><p class="muted" style="font-size:0.75rem;margin:4px 0 0;">Tick-gu isla markiiba ayuu shaqeeyaa. Marka "Dhammaan macalimiinta" la doorto, liiskan looma baahna.</p>'+
     '<div class="ef-modal-btns" style="margin-top:14px;"><button class="btn-primary btn-sm" id="be-save" type="button">💾 Kaydi</button><button class="btn-ghost btn-sm" id="be-cancel" type="button">Ka noqo</button></div></div>';
   document.body.appendChild(ov);
   ov.querySelector('#be-cancel').onclick = ()=>ov.remove();
   ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  const tl = ov.querySelector('#be-tlist'), openSel = ov.querySelector('#be-open');
+  const syncOpen = ()=>tl.classList.toggle('off', openSel.value==='1');
+  openSel.addEventListener('change', syncOpen); syncOpen();
+  tl.querySelectorAll('input[type=checkbox]').forEach(cb=>cb.addEventListener('change', ()=>toggleTeacherBook(cb.getAttribute('data-tid'), id, cb.checked)));
   ov.querySelector('#be-save').onclick = ()=>{
     const title = ov.querySelector('#be-title').value.trim();
     if(!title){ toast('Fadlan geli magaca buugga.'); return; }
@@ -5827,6 +5877,8 @@ let EXAM_FEES = {};
 let EXAM_ACCESS = {};
 let SCHOOL_LOGO = '';
 let SCHOOL_LINK = '';
+let EXAM_NAME = '';
+let TEACHER_INSPECT = {}; // teacherId -> false = xiran (default furan)
 
 function efNum(n){ return parseFloat((Number(n)||0).toFixed(2)); }
 function efGrants(tid){ return Object.entries((tid && EXAM_ACCESS[tid]) || {}).map(([id,g])=>Object.assign({id},g)); }
@@ -5883,6 +5935,10 @@ function examfeeFillGrantSections(){
   const secs = [...new Set(Object.values(STUDENTS||{}).filter(s=>s.fasal===fasal).map(s=>s.section).filter(Boolean))].sort();
   sSel.innerHTML = '<option value="">Dhammaan sections-ka</option>' + secs.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   if(secs.includes(ps)) sSel.value = ps;
+}
+function saveExamName(){
+  const v = document.getElementById('ef-exam-name').value.trim();
+  (v ? db.child('config/examName').set(v) : db.child('config/examName').remove()).then(()=>toast('✅ Magaca imtixaanka waa la kaydiyay.')).catch(e=>toast('❌ '+e.message));
 }
 function examfeeGrant(){
   const tid = document.getElementById('ef-grant-teacher').value;
@@ -6213,17 +6269,19 @@ function efParentMsg(s, g, tel){
   let kids = tel ? efGroupFor(tel) : [];
   if(!kids.length) kids = [{s, g, amt: Number(efNum(g.payAmount))||0}];
   const total = kids.reduce((a,k)=>a+k.amt,0);
-  const head = '🌿 *AL-XIKMA SCHOOL* 🌿\n' + line + '\n\nالسلام عليكم ورحمة الله وبركاته 🌹\n\n';
-  const foot = '\n' + line + '\n🙏 *Mahadsanid* 🙏\n_AL-XIKMA SCHOOL_ 🏫' + (SCHOOL_LINK ? '\n\n🔗 ' + SCHOOL_LINK : '');
+  const exN = '';
+  const soon = '\n⏳ ' + (EXAM_NAME ? '*' + EXAM_NAME + '*' : 'Imtixaanka') + ' wuxuu bilaabmayaa *dhawaan, haddii Alle idmo* 🤲\n';
+  const head = '🌿 *AL-XIKMA SCHOOL* 🌿\n' + line + '\n\nالسلام عليكم ورحمة الله وبركاته 🌹\n\n' + (EXAM_NAME ? '📝 *' + EXAM_NAME + '* 📝\n\n' : '');
+  const foot = soon + '\n' + line + '\n🙏 *Mahadsanid* 🙏\n_AL-XIKMA SCHOOL_ 🏫' + (SCHOOL_LINK ? '\n\n🔗 ' + SCHOOL_LINK : '');
   const pay = '📱 Kuna dir taleefonka: *' + g.payTel + '*\n👤 Magaca soo baxayana waa: *' + g.payName + '*\n';
   if(kids.length===1){
     return head + '👋 Walaal, waa *foomastarka* ardayga *' + (kids[0].s.name||'').trim() + '* 👨‍🎓\n\n' +
-      '📢 Waxaan u xilsaaran ahay ururinta *lacagta imtixaanka* 📝\n\n' +
+      '📢 Waxaan u xilsaaran ahay ururinta *lacagta imtixaanka' + exN + '* 📝\n\n' +
       '💰 Fadlan waalid soo dir lacagta imtixaanka oo dhan: *$' + efNum(total) + '*\n' + pay + foot;
   }
   return head + '👋 Walaal, waa *foomastarka* ardaydaada (' + kids.length + ' arday) 👨‍🎓\n\n' +
     kids.map((k,i)=>(i+1)+'️⃣ *' + (k.s.name||'').trim() + '* — ' + (k.s.fasal||'') + (k.s.section?' ('+k.s.section+')':'') + ' — $' + efNum(k.amt)).join('\n') + '\n\n' +
-    '📢 Waxaan u xilsaaran ahay ururinta *lacagta imtixaanka* 📝\n\n' +
+    '📢 Waxaan u xilsaaran ahay ururinta *lacagta imtixaanka' + exN + '* 📝\n\n' +
     '💰 Fadlan waalid soo dir lacagta imtixaanka oo dhan: *$' + efNum(total) + '* (' + kids.length + ' arday)\n' + pay + foot;
 }
 // Logo + fariin: share sheet (WhatsApp-ka ka dooro qofka)
