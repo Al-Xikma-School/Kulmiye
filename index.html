@@ -888,7 +888,9 @@
   .bus-sum{font-size:0.85rem;margin-top:4px;color:var(--ink);}
   .bus-btns{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
   .bus-tbl-wrap{overflow-x:auto;margin-top:10px;}
-  .bus-tbl{min-width:520px;}
+  .bus-tbl{min-width:520px;color:#2b1d0e;}
+  .bus-tbl td{color:#2b1d0e;}
+  .bus-tbl th{color:#7a7364;text-transform:uppercase;font-size:0.72rem;}
   .bus-tbl td,.bus-tbl th{padding:4px;border-bottom:1px solid #eee3c8;text-align:left;font-size:0.82rem;}
   .bus-tbl input,.bus-tbl select{padding:5px 6px;font-size:0.82rem;min-width:70px;}
   .bus-tbl .fee{width:70px;min-width:60px;}
@@ -5729,6 +5731,67 @@ function basasUpdateStudent(id, sid, field, val){
   else upd[field] = String(val).trim();
   basasRef.child(id).child('students').child(sid).update(upd).then(()=>{ toast('💾 Waa la kaydiyay.'); renderBasas(); });
 }
+
+// ---------- Action (⋮): wax ka beddel / tirtir / ku dar ----------
+function basasActBtn(id, sid){ return '<button class="ef-callbtn" type="button" title="Action" onclick="basasActions(\''+id+'\',\''+sid+'\')">⋮</button>'; }
+function basasSheetMode(){ return basasIsSheet(); }
+function basasStuFields(s){ return {name:String(s.name||'').trim(), phone1:String(s.phone1||'').trim(), phone2:String(s.phone2||'').trim(), fee:Math.max(0, parseFloat(s.fee)||0), type:(s.type==='xadaano'?'xadaano':'iskuul')}; }
+function basasActions(id, sid){
+  const d = BASAS[id]; const s = d && d.students && d.students[sid]; if(!s) return;
+  const ov = document.createElement('div'); ov.className = 'ef-modal';
+  ov.innerHTML = '<div class="ef-modal-box"><p><b>'+bEsc(s.name||'')+'</b></p><div style="display:flex;flex-direction:column;gap:8px;">'+
+    '<button class="btn-primary" type="button" id="ba-edit">✏️ Wax ka beddel</button>'+
+    '<button class="btn-danger" type="button" id="ba-del">🗑️ Tirtir</button>'+
+    '<button class="btn-ghost" type="button" id="ba-x">Xir</button></div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#ba-x').onclick = ()=>ov.remove();
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#ba-edit').onclick = ()=>{ ov.remove(); basasStuDialog(id, sid); };
+  ov.querySelector('#ba-del').onclick = ()=>{ ov.remove(); basasDelStu(id, sid); };
+}
+function basasStuDialog(id, sid){
+  const d = BASAS[id]; if(!d) return;
+  const s = sid ? (d.students||{})[sid] : null; if(sid && !s) return;
+  const f = basasStuFields(s || {});
+  const ov = document.createElement('div'); ov.className = 'ef-modal';
+  const inp = (k,l,v,t)=>'<label>'+l+'</label><input type="'+(t||'text')+'" id="bd-'+k+'" value="'+bEsc(v)+'">';
+  ov.innerHTML = '<div class="ef-modal-box book-edit-form" style="text-align:left;max-height:90vh;overflow:auto;"><p style="text-align:center;"><b>'+(sid?'✏️ Wax ka beddel ardayga':'➕ Ku dar arday')+'</b></p>'+
+    inp('name','Magaca ardayga',f.name)+inp('p1','Tel 1',f.phone1,'tel')+inp('p2','Tel 2',f.phone2,'tel')+inp('fee','Lacag ($)',f.fee)+
+    '<label>Nooca</label><select id="bd-type"><option value="iskuul"'+(f.type==='iskuul'?' selected':'')+'>🏫 Iskuul</option><option value="xadaano"'+(f.type==='xadaano'?' selected':'')+'>👶 Xadaano</option></select>'+
+    '<div class="ef-modal-btns" style="margin-top:14px;"><button class="btn-primary btn-sm" id="bd-save" type="button">💾 Kaydi</button><button class="btn-ghost btn-sm" id="bd-x" type="button">Ka noqo</button></div></div>';
+  document.body.appendChild(ov);
+  ov.querySelector('#bd-x').onclick = ()=>ov.remove();
+  ov.addEventListener('click', e=>{ if(e.target===ov) ov.remove(); });
+  ov.querySelector('#bd-save').onclick = ()=>{
+    const v = k=>ov.querySelector('#bd-'+k).value.trim();
+    const data = {name:v('name'), phone1:v('p1'), phone2:v('p2'), fee:Math.max(0, parseFloat(v('fee'))||0), type:v('type')};
+    if(!data.name){ toast('Geli magaca ardayga.'); return; }
+    let pr;
+    if(basasSheetMode()){
+      const dk = d._dk || bKey(d.name);
+      if(!sid) pr = basasOvRef.child(dk+'/added').push(Object.assign({createdAt:Date.now()}, data));
+      else if(s._added) pr = basasOvRef.child(dk+'/added/'+s._pid).update(data);
+      else pr = basasOvRef.child(dk+'/edits/'+s._k).update(data);
+    } else {
+      pr = sid ? basasRef.child(id).child('students').child(sid).update(data)
+               : basasRef.child(id).child('students').push(Object.assign({createdAt:Date.now()}, data));
+    }
+    pr.then(()=>{ toast('✅ Waa la kaydiyay.'); ov.remove(); }).catch(e=>toast('❌ '+e.message));
+  };
+}
+function basasAddDialog(id){ basasStuDialog(id, null); }
+function basasDelStu(id, sid){
+  const d = BASAS[id]; const s = d && d.students && d.students[sid]; if(!s) return;
+  if(!confirm('Ka tirtir "'+s.name+'" darawalkan?')) return;
+  let pr;
+  if(basasSheetMode()){
+    const dk = d._dk || bKey(d.name);
+    pr = s._added ? basasOvRef.child(dk+'/added/'+s._pid).remove() : basasOvRef.child(dk+'/deleted/'+s._k).set(true);
+  } else {
+    pr = basasRef.child(id).child('students').child(sid).remove();
+  }
+  pr.then(()=>toast('🗑️ Ardayga waa la tirtiray.')).catch(e=>toast('❌ '+e.message));
+}
 function basasDeleteStudent(id, sid){
   const s = ((BASAS[id]||{}).students||{})[sid]; if(!s) return;
   if(!confirm('Ka tirtir "'+s.name+'" darawalkan?')) return;
@@ -5759,17 +5822,18 @@ function renderBasas(){
   list.innerHTML = ids.map(id=>{
     const d = BASAS[id], n = basasCalc(d,'lacag'), open = BASAS_OPEN.has(id);
     const total = Object.keys(d.students||{}).length;
+    const cX = Object.values(d.students||{}).filter(x=>x.type==='xadaano').length, cI = total - cX;
     let body = '';
     if(open){
       const rows = basasSorted(d).map(s=> ro ?
-        '<tr><td>'+bEsc(s.name)+'</td><td>'+bEsc(s.phone1||'')+'</td><td>'+bEsc(s.phone2||'')+'</td><td>'+((Number(s.fee)||0)===0?'🎁 Bilaash':'$'+bNum(s.fee))+'</td><td>'+(s.type==='xadaano'?'👶 Xadaano':'🏫 Iskuul')+'</td></tr>' :
+        '<tr><td>'+bEsc(s.name)+'</td><td>'+bEsc(s.phone1||'')+'</td><td>'+bEsc(s.phone2||'')+'</td><td>'+((Number(s.fee)||0)===0?'🎁 Bilaash':'$'+bNum(s.fee))+'</td><td>'+(s.type==='xadaano'?'👶 Xadaano':'🏫 Iskuul')+'</td><td style="text-align:center;">'+basasActBtn(id,s.id)+'</td></tr>' :
         '<tr>'+
         '<td>'+bEsc(s.name)+'</td>'+
         '<td><input type="tel" value="'+bEsc(s.phone1||'')+'" onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'phone1\',this.value)"></td>'+
         '<td><input type="tel" value="'+bEsc(s.phone2||'')+'" onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'phone2\',this.value)"></td>'+
         '<td><input type="text" class="fee" inputmode="decimal" value="'+bNum(s.fee)+'" onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'fee\',this.value)"></td>'+
         '<td><select onchange="basasUpdateStudent(\''+id+'\',\''+s.id+'\',\'type\',this.value)"><option value="iskuul"'+(s.type==='xadaano'?'':' selected')+'>🏫 Iskuul</option><option value="xadaano"'+(s.type==='xadaano'?' selected':'')+'>👶 Xadaano</option></select></td>'+
-        '<td><button class="btn-danger btn-sm" onclick="basasDeleteStudent(\''+id+'\',\''+s.id+'\')">🗑️</button></td>'+
+        '<td>'+basasActBtn(id,s.id)+'</td>'+
         '</tr>').join('');
       const addRow = ro ? '' :
         '<tr>'+
@@ -5781,7 +5845,7 @@ function renderBasas(){
         '<td><button class="btn-primary btn-sm" onclick="basasAddStudent(\''+id+'\')">➕</button></td>'+
         '</tr>';
       body =
-        '<div class="bus-tbl-wrap"><table class="bus-tbl"><thead><tr><th>Arday</th><th>Tel 1</th><th>Tel 2</th><th>Lacag</th><th>Nooca</th>'+(ro?'':'<th></th>')+'</tr></thead><tbody>'+
+        '<div class="bus-tbl-wrap"><table class="bus-tbl"><thead><tr><th>Arday</th><th>Tel 1</th><th>Tel 2</th><th>Lacag</th><th>Nooca</th><th style="text-align:center;color:#c62828;">Action</th></tr></thead><tbody>'+
         (rows || '<tr><td colspan="6" class="muted">Arday lama darin.</td></tr>')+ addRow +
         '</tbody></table></div>';
     }
@@ -5789,12 +5853,13 @@ function renderBasas(){
       '<div class="bus-head" onclick="basasToggle(\''+id+'\')">'+
         '<div><div class="bus-name">🚌 '+bEsc((d.name||'').toUpperCase())+'</div>'+
         '<div class="bus-tel">📞 '+bEsc(d.phone||'telefoon ma jiro')+(ro&&d.sheet?' · sheet: '+bEsc(d.sheet):'')+'</div></div>'+
-        '<div class="bus-sum">🏫 $'+n.tI+' &nbsp; 👶 $'+n.tX+' &nbsp; 💰 <b>$'+bNum(n.tI+n.tX)+'</b> &nbsp; ('+total+' arday, 🎁 '+n.lF.length+' bilaash) '+(open?'▲':'▼')+'</div>'+
+        '<div class="bus-sum">🏫 $'+n.tI+' &nbsp; 👶 $'+n.tX+' &nbsp; 💰 <b>$'+bNum(n.tI+n.tX)+'</b> &nbsp; (<b>Iskuul '+cI+' + Xadaano '+cX+' = '+total+'</b> · 🎁 '+n.lF.length+' bilaash) '+(open?'▲':'▼')+'</div>'+
       '</div>'+
       '<div class="bus-btns">'+
         '<button class="btn-whatsapp btn-sm" onclick="basasSendXisaab(\''+id+'\')">📤 Xisaab → Darawal</button>'+
         '<button class="btn-whatsapp btn-sm" onclick="basasSendTel(\''+id+'\')">📞 Taleefonno → Darawal</button>'+
         '<button class="btn-whatsapp btn-sm" onclick="basasSendXisaabKoox(\''+id+'\')">📤 Xisaab → Koox</button>'+
+        (ro ? '<button class="btn-primary btn-sm" onclick="basasAddDialog(\''+id+'\')">➕ Ku dar arday</button>' : '')+
         (ro ? '' :
         '<button class="btn-ghost btn-sm" onclick="basasEditDriver(\''+id+'\')">✏️ Beddel</button>'+
         '<button class="btn-danger btn-sm" onclick="basasDeleteDriver(\''+id+'\')">🗑️ Tirtir</button>')+
@@ -5808,10 +5873,32 @@ const basasCfgRef = firebase.database().ref('ardaydaHoosaysa/basasConfig');
 let BASAS_CFG = {};
 let BASAS_FB = {};
 let BASAS_SHEET = null;
+let BASAS_OV = {};
+const basasOvRef = firebase.database().ref('ardaydaHoosaysa/basasOverlay');
+basasOvRef.on('value', snap=>{ BASAS_OV = snap.val() || {}; basasApply(); }, err=>console.error('basasOverlay listener error:', err));
+function bKey(x){ return String(x==null?'':x).toLowerCase().trim().replace(/[.#$\[\]\/\s]+/g,'_').slice(0,80) || 'x'; }
+// Xogta sheet-ka + isbeddellada gacanta (wax ka beddel / tirtir / ku dar) ee Firebase
+function basasMerge(sheet, ov){
+  const out = {};
+  Object.entries(sheet||{}).forEach(([did,d])=>{
+    const dk = bKey(d.name), o = (ov||{})[dk] || {};
+    const counts = {}, students = {};
+    Object.entries(d.students||{}).forEach(([sid,st])=>{
+      const base = bKey(st.name); counts[base] = (counts[base]||0)+1;
+      const k = base+'~'+counts[base];
+      if(o.deleted && o.deleted[k]) return;
+      const e = (o.edits && o.edits[k]) || {};
+      students[sid] = Object.assign({}, st, e, {_k:k});
+    });
+    Object.entries(o.added||{}).forEach(([pid,a])=>{ students['a_'+pid] = Object.assign({}, a, {_added:true, _pid:pid}); });
+    out[did] = Object.assign({}, d, {students, _dk:dk});
+  });
+  return out;
+}
 let BASAS_LOADING = false;
 function basasIsSheet(){ return !!(BASAS_CFG.sheetUrl && BASAS_SHEET); }
 function basasApply(){
-  BASAS = basasIsSheet() ? BASAS_SHEET : BASAS_FB;
+  BASAS = basasIsSheet() ? basasMerge(BASAS_SHEET, BASAS_OV) : BASAS_FB;
   const tab = document.getElementById('tab-basas');
   if(tab && !tab.classList.contains('hidden')){
     const ae = document.activeElement;
