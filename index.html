@@ -6326,12 +6326,11 @@ function examfeeRenderRank(p, month){
       '<div class="ef-rank-badge">'+efMedal(me.rank)+' Kaalinta '+efOrd(me.rank)+'</div></div>'+
       '<div class="ef-rank-msg">'+msg+'</div>';
   }
-  if(p!=='t') html += '<div class="ef-lb"><b>📊 Kaalinta Macalimiinta</b>'+
+  html += '<div class="ef-lb"><b>📊 Kaalinta Macalimiinta</b>'+
     rows.map(r=>'<div class="ef-lb-row'+(r.id===meId?' me':'')+'"><span class="ef-lb-pos">'+(r.rank<=3?efMedal(r.rank):r.rank)+'</span>'+
       '<span class="ef-lb-name">'+escapeHtml(r.name)+(r.id===meId?' (adiga)':'')+'</span>'+
       '<div class="ef-bar"><i style="width:'+Math.min(100,r.pct)+'%"></i></div>'+
       '<span class="ef-lb-val">'+r.pct+'% <span class="muted">('+r.paid+'/'+r.total+')</span></span></div>').join('')+'</div></div>';
-  else html += '</div>';
   if(p==='t' && !me) html = '';
   box.innerHTML = html;
 }
