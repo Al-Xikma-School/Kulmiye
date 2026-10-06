@@ -4792,6 +4792,44 @@ function exportFartaPdf(prefix='farta'){
   });
   doc.save(`farta-laatiinka-${new Date().toISOString().slice(0,10)}.pdf`);
 }
+// ---------- Wax ka beddelka liiska Qori Tuur (ka reeb / ku dar arday) ----------
+function qoriAddableStudents(teacherId){
+  const t = TEACHERS[teacherId]; if(!t) return [];
+  const norm = v => v ? v.toString().trim().toLowerCase() : '';
+  const assigns = [
+    {fasal:t.fasal1, section:t.section1},
+    {fasal:t.fasal2, section:t.section2},
+    {fasal:t.fasal3, section:t.section3}
+  ].filter(a=>a.fasal);
+  const r = (QORI_TUUR.results||{})[teacherId];
+  const already = new Set(((r&&r.winners)||[]).map(w=>w.studentId));
+  return Object.entries(STUDENTS)
+    .filter(([sid,s])=> !already.has(sid) && assigns.some(a=> norm(s.fasal)===norm(a.fasal) && (!norm(a.section) || norm(s.section)===norm(a.section))))
+    .sort((a,b)=> String(a[1].name||'').localeCompare(String(b[1].name||'')));
+}
+function removeQoriWinner(teacherId, idx){
+  if(!db) return;
+  const r = (QORI_TUUR.results||{})[teacherId]; if(!r || !r.winners || !r.winners[idx]) return;
+  const w = r.winners[idx];
+  if(!confirm(`Ma hubtaa inaad liiska ka reebto "${w.name}"?`)) return;
+  const winners = r.winners.filter((_,i)=> i!==idx);
+  const ref = db.child('qoriTuur/results/'+teacherId);
+  const op = winners.length ? ref.child('winners').set(winners) : ref.remove();
+  op.then(()=> toast('✅ Ardayga waa laga reebay liiska.'));
+}
+function addQoriWinner(teacherId){
+  if(!db) return;
+  const sel = document.getElementById('qt-add-'+teacherId);
+  const sid = sel && sel.value;
+  if(!sid){ toast('Fadlan dooro arday marka hore.'); return; }
+  const s = STUDENTS[sid]; if(!s) return;
+  const r = (QORI_TUUR.results||{})[teacherId];
+  const winners = ((r&&r.winners)||[]).slice();
+  const t = TEACHERS[teacherId] || {};
+  winners.push({studentId: sid, name: s.name, fasal: s.fasal || '', section: s.section || ''});
+  const ref = db.child('qoriTuur/results/'+teacherId);
+  ref.update({teacherName: (r&&r.teacherName) || t.name || '', winners}).then(()=> toast('✅ Ardayga waa lagu daray liiska.'));
+}
 function renderQoriTuur(){
   const el = document.getElementById('qt-list');
   const genAtEl = document.getElementById('qt-generated-at');
@@ -4812,7 +4850,14 @@ function renderQoriTuur(){
         <td style="padding:6px;border:1px solid #ddd;text-align:center;">${i+1}</td>
         <td style="padding:6px;border:1px solid #ddd;font-weight:600;">${escapeHtml(w.name)}</td>
         <td style="padding:6px;border:1px solid #ddd;text-align:center;">${escapeHtml(w.fasal)}${w.section ? ' · '+escapeHtml(w.section) : ''}</td>
+        <td style="padding:6px;border:1px solid #ddd;text-align:center;"><button class="btn-danger btn-sm" title="Ka reeb liiska" onclick="removeQoriWinner('${teacherId}', ${i})">🗑️ Ka reeb</button></td>
       </tr>`).join('');
+    const addOptions = qoriAddableStudents(teacherId).map(([sid,st])=>`<option value="${sid}">${escapeHtml(st.name)} — ${escapeHtml(st.fasal||'')}${st.section ? ' · '+escapeHtml(st.section) : ''}</option>`).join('');
+    const addBox = `<div class="row" style="align-items:flex-end;margin-top:10px;">
+        <div><label>➕ Ku dar arday liiskan</label>
+          <select id="qt-add-${teacherId}"><option value="">-- Dooro arday --</option>${addOptions}</select></div>
+        <div style="flex:0;"><button class="btn-primary btn-sm" onclick="addQoriWinner('${teacherId}')">Ku dar</button></div>
+      </div>`;
     return `
     <div class="flagged-item">
       <div class="flagged-head">
@@ -4825,11 +4870,13 @@ function renderQoriTuur(){
             <th style="padding:6px;border:1px solid #ddd;">No</th>
             <th style="padding:6px;border:1px solid #ddd;text-align:left;">Magaca Ardayga</th>
             <th style="padding:6px;border:1px solid #ddd;">Darajada</th>
+            <th style="padding:6px;border:1px solid #ddd;">Tilaabo</th>
           </tr></thead>
           <tbody>${winnersRows}</tbody>
         </table>
       </div>
-      <p class="muted" style="margin:4px 0 0;font-size:0.75rem;">🔒 Shaxdan waa akhris-kaliya, lamana beddeli karo.</p>
+      ${addBox}
+      <p class="muted" style="margin:6px 0 0;font-size:0.75rem;">✏️ Waad ka reebi kartaa ama ku dari kartaa arday; isbeddelku wuxuu si toos ah u gaadhayaa fariinta WhatsApp iyo tabka Farta Laatiinka.</p>
     </div>`;
   }).join('');
 }
